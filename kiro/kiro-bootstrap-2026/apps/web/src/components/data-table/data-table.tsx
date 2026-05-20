@@ -1,3 +1,8 @@
+/**
+ * Standard DataTable — for datasets under 100 rows.
+ * For larger datasets (100+ rows), use VirtualizedDataTable instead.
+ * @see ./virtualized-data-table.tsx
+ */
 'use client';
 
 import {
