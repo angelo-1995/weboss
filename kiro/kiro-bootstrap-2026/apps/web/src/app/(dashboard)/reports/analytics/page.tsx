@@ -1,7 +1,12 @@
-'use client';
-
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
-import { ReportAnalytics } from '@/features/reporting/components/report-analytics';
+import { PageSkeleton } from '@/components/feedback/page-skeleton';
+
+const ReportAnalytics = dynamic(
+  () => import('@/features/reporting/components/report-analytics').then(m => ({ default: m.ReportAnalytics })),
+  { ssr: false, loading: () => <PageSkeleton type="detail" /> }
+);
 
 export default function ReportAnalyticsPage() {
   return (
@@ -10,7 +15,9 @@ export default function ReportAnalyticsPage() {
         title="Analytics de Reportes"
         description="Visualiza tendencias de asistencia, crecimiento y métricas de células"
       />
-      <ReportAnalytics />
+      <Suspense fallback={<PageSkeleton type="detail" />}>
+        <ReportAnalytics />
+      </Suspense>
     </div>
   );
 }
