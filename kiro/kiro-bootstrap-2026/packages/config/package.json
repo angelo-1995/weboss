@@ -1,0 +1,10 @@
+{
+  "name": "@community-os/config",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./typescript": "./typescript/index.json",
+    "./eslint": "./eslint/index.js",
+    "./tailwind": "./tailwind/index.ts"
+  }
+}

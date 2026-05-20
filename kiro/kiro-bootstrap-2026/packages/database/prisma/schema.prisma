@@ -1,0 +1,735 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+
+  @@map("user_status")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  LEADER
+  MEMBER
+  GUEST
+
+  @@map("user_role")
+}
+
+enum GroupType {
+  CELL
+  MINISTRY
+  CAMPUS
+  DEPARTMENT
+  TEAM
+  SPECIAL
+
+  @@map("group_type")
+}
+
+enum GroupMemberRole {
+  LEADER
+  CO_LEADER
+  MEMBER
+  GUEST
+
+  @@map("group_member_role")
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+
+  @@map("membership_status")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+
+  @@map("invitation_status")
+}
+
+enum DiscipleshipStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+
+  @@map("discipleship_status")
+}
+
+enum SpiritualStage {
+  GANADO
+  CONSOLIDADO
+  DISCIPULADO
+  ENVIADO
+
+  @@map("spiritual_stage")
+}
+
+enum RelationshipType {
+  MENTOR_MENTEE
+  LEADER_MEMBER
+  ACCOUNTABILITY
+  PASTORAL
+  COVERAGE
+
+  @@map("relationship_type")
+}
+
+enum MinisterialRole {
+  PASTOR_GENERAL    // Pastor principal de la iglesia
+  PASTOR_RED        // Pastor de una red
+  COBERTURA         // Líder de cobertura (supervisa líderes)
+  LIDER             // Líder de célula
+  ESTACA            // Estaca (líder en formación)
+  MIEMBRO           // Miembro regular
+
+  @@map("ministerial_role")
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  MANAGE
+
+  @@map("permission_action")
+}
+
+enum SermonStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+
+  @@map("sermon_status")
+}
+
+// ============================================================
+// IDENTITY & AUTH
+// ============================================================
+
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  password    String
+  firstName   String     @map("first_name")
+  lastName    String     @map("last_name")
+  displayName String?    @map("display_name")
+  avatarUrl   String?    @map("avatar_url")
+  phoneNumber String?    @map("phone_number")
+  status      UserStatus @default(PENDING)
+  roles       UserRole[] @default([MEMBER])
+  campusId    String?    @map("campus_id")
+  spouseId    String?    @unique @map("spouse_id")
+  leaderId    String?    @map("leader_id")
+  networkId   String?    @map("network_id")
+  spiritualStage  SpiritualStage? @map("spiritual_stage")
+  leaderCode      String?         @map("leader_code")
+  ministerialRole MinisterialRole? @map("ministerial_role")
+
+  // Spiritual milestones (checkboxes)
+  isBaptized        Boolean   @default(false) @map("is_baptized")
+  baptizedDate      DateTime? @map("baptized_date")
+  hasFirstRetreat   Boolean   @default(false) @map("has_first_retreat")
+  retreatDate       DateTime? @map("retreat_date")
+  hasAcademy        Boolean   @default(false) @map("has_academy")
+  academyDate       DateTime? @map("academy_date")
+  hasLaunch         Boolean   @default(false) @map("has_launch")
+  launchDate        DateTime? @map("launch_date")
+
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
+
+  // Relations
+  campus        Campus?       @relation(fields: [campusId], references: [id])
+  profile       UserProfile?
+  sessions      Session[]
+  groupMembers  GroupMember[]
+  memberships   Membership[]
+  invitesSent   Invitation[]  @relation("InvitedBy")
+  auditLogs     AuditLog[]
+  createdGroups Group[]       @relation("GroupCreator")
+
+  // Discipleship
+  mentorOf      DiscipleshipRelationship[] @relation("MentorRelationships")
+  discipleOf    DiscipleshipRelationship[] @relation("DiscipleRelationships")
+  discipleshipsCreated DiscipleshipRelationship[] @relation("DiscipleshipCreator")
+
+  // Permissions
+  userPermissions UserPermission[]
+
+  // Organizational relations
+  spouse         User?     @relation("SpouseRelation", fields: [spouseId], references: [id])
+  spouseOf       User?     @relation("SpouseRelation")
+  coverageLeader User?     @relation("LeaderCoverage", fields: [leaderId], references: [id])
+  subordinates   User[]    @relation("LeaderCoverage")
+  network        Network?  @relation("UserNetwork", fields: [networkId], references: [id])
+
+  // Network Leaderships
+  networkLeaderships NetworkLeader[]
+
+  // Cell Reports
+  cellReports CellReport[] @relation("CellReportReporter")
+
+  // Spiritual Stage Transitions
+  stageTransitions    StageTransition[] @relation("StageTransitions")
+  promotedTransitions StageTransition[] @relation("PromotedTransitions")
+
+  // Sermons
+  sermonsCreated  Sermon[]       @relation("SermonCreator")
+  sermonViews     SermonView[]   @relation("SermonViews")
+  notifications   Notification[] @relation("UserNotifications")
+
+  @@index([email])
+  @@index([status])
+  @@index([campusId])
+  @@map("users")
+}
+
+model UserProfile {
+  id         String    @id @default(uuid())
+  userId     String    @unique @map("user_id")
+  bio        String?
+  birthDate  DateTime? @map("birth_date")
+  address    String?
+  instagram  String?
+  facebook   String?
+  twitter    String?
+  linkedin   String?
+  whatsapp   String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  refreshToken String    @unique @map("refresh_token")
+  familyId     String    @map("family_id") @default(uuid())
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address")
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+model Invitation {
+  id          String           @id @default(uuid())
+  email       String
+  token       String           @unique
+  status      InvitationStatus @default(PENDING)
+  invitedById String           @map("invited_by_id")
+  groupId     String?          @map("group_id")
+  expiresAt   DateTime         @map("expires_at")
+  acceptedAt  DateTime?        @map("accepted_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  invitedBy User   @relation("InvitedBy", fields: [invitedById], references: [id])
+  group     Group? @relation(fields: [groupId], references: [id])
+
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@map("invitations")
+}
+
+// ============================================================
+// ORGANIZATION
+// ============================================================
+
+model Campus {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  address     String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  users      User[]
+  groups     Group[]
+  ministries Ministry[]
+
+  @@index([slug])
+  @@map("campuses")
+}
+
+model Ministry {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  campusId    String?   @map("campus_id")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  campus Campus? @relation(fields: [campusId], references: [id])
+  groups Group[]
+
+  @@index([slug])
+  @@index([campusId])
+  @@map("ministries")
+}
+
+// ============================================================
+// NETWORKS
+// ============================================================
+
+model Network {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  name            String
+  parentNetworkId String?   @map("parent_network_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  parent   Network?  @relation("NetworkHierarchy", fields: [parentNetworkId], references: [id])
+  children Network[] @relation("NetworkHierarchy")
+  users    User[]    @relation("UserNetwork")
+  groups   Group[]   @relation("GroupNetwork")
+  leaders  NetworkLeader[]
+  sermons  Sermon[]
+
+  @@index([parentNetworkId])
+  @@index([code])
+  @@map("networks")
+}
+
+model NetworkLeader {
+  id        String   @id @default(uuid())
+  networkId String   @map("network_id")
+  userId    String   @map("user_id")
+  role      String   @default("PASTOR")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  network Network @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([networkId, userId])
+  @@index([networkId])
+  @@index([userId])
+  @@map("network_leaders")
+}
+
+// ============================================================
+// GROUPS
+// ============================================================
+
+model Group {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  code        String?   // Código jerárquico (ej: E5.1)
+  description String?
+  type        GroupType @default(CELL)
+  isActive    Boolean   @default(true) @map("is_active")
+  parentId    String?   @map("parent_id")
+  campusId    String?   @map("campus_id")
+  ministryId  String?   @map("ministry_id")
+  createdById String    @map("created_by_id")
+  networkId   String?   @map("network_id")
+
+  // Ubicación
+  country       String?   // País
+  province      String?   // Provincia
+  district      String?   // Distrito
+  corregimiento String?   // Corregimiento
+  neighborhood  String?   // Barriada/Sector
+  street        String?   // Calle
+  houseNumber   String?   @map("house_number") // Casa #
+  latitude      Float?    // Coordenada GPS
+  longitude     Float?    // Coordenada GPS
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  parent     Group?        @relation("GroupHierarchy", fields: [parentId], references: [id])
+  children   Group[]       @relation("GroupHierarchy")
+  campus     Campus?       @relation(fields: [campusId], references: [id])
+  ministry   Ministry?     @relation(fields: [ministryId], references: [id])
+  createdBy  User          @relation("GroupCreator", fields: [createdById], references: [id])
+  network    Network?      @relation("GroupNetwork", fields: [networkId], references: [id])
+  members    GroupMember[]
+  memberships Membership[]
+  invitations Invitation[]
+  discipleships DiscipleshipRelationship[]
+  cellReports CellReport[]
+
+  @@index([slug])
+  @@index([type])
+  @@index([campusId])
+  @@index([parentId])
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String          @id @default(uuid())
+  groupId  String          @map("group_id")
+  userId   String          @map("user_id")
+  role     GroupMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now()) @map("joined_at")
+  leftAt   DateTime?       @map("left_at")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+// ============================================================
+// MEMBERSHIPS
+// ============================================================
+
+model Membership {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  groupId   String?          @map("group_id")
+  status    MembershipStatus @default(PENDING)
+  startDate DateTime         @default(now()) @map("start_date")
+  endDate   DateTime?        @map("end_date")
+  notes     String?
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id])
+
+  @@index([userId])
+  @@index([groupId])
+  @@index([status])
+  @@map("memberships")
+}
+
+// ============================================================
+// DISCIPLESHIP
+// ============================================================
+
+model DiscipleshipRelationship {
+  id          String             @id @default(uuid())
+  mentorId    String             @map("mentor_id")
+  discipleId  String             @map("disciple_id")
+  type        RelationshipType   @default(MENTOR_MENTEE)
+  status      DiscipleshipStatus @default(ACTIVE)
+  startDate   DateTime           @default(now()) @map("start_date")
+  endDate     DateTime?          @map("end_date")
+  notes       String?
+  groupId     String?            @map("group_id")
+  createdById String             @map("created_by_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  mentor    User   @relation("MentorRelationships", fields: [mentorId], references: [id])
+  disciple  User   @relation("DiscipleRelationships", fields: [discipleId], references: [id])
+  createdBy User   @relation("DiscipleshipCreator", fields: [createdById], references: [id])
+  group     Group? @relation(fields: [groupId], references: [id])
+  milestones DiscipleshipMilestone[]
+  checkIns   DiscipleshipCheckIn[]
+
+  @@unique([mentorId, discipleId, type])
+  @@index([mentorId])
+  @@index([discipleId])
+  @@index([status])
+  @@index([groupId])
+  @@map("discipleship_relationships")
+}
+
+model DiscipleshipMilestone {
+  id             String   @id @default(uuid())
+  relationshipId String   @map("relationship_id")
+  title          String
+  description    String?
+  completedAt    DateTime? @map("completed_at")
+  order          Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  relationship DiscipleshipRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+  @@map("discipleship_milestones")
+}
+
+model DiscipleshipCheckIn {
+  id             String   @id @default(uuid())
+  relationshipId String   @map("relationship_id")
+  notes          String?
+  rating         Int?
+  attendedBy     String[] @map("attended_by")
+  scheduledAt    DateTime @map("scheduled_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  relationship DiscipleshipRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+  @@index([scheduledAt])
+  @@map("discipleship_check_ins")
+}
+
+// ============================================================
+// PERMISSIONS (ABAC)
+// ============================================================
+
+model Permission {
+  id       String           @id @default(uuid())
+  resource String
+  action   PermissionAction
+  name     String           @unique
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@index([resource])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         UserRole
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  resource     String
+  action       PermissionAction
+  resourceId   String?    @map("resource_id")
+  granted      Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  expiresAt    DateTime?  @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resource, action])
+  @@map("user_permissions")
+}
+
+// ============================================================
+// AUDIT
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  resource   String
+  resourceId String?  @map("resource_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// CELL REPORTS
+// ============================================================
+
+model CellReport {
+  id                String   @id @default(uuid())
+  groupId           String   @map("group_id")
+  reporterId        String   @map("reporter_id")
+  cellCode          String   @map("cell_code")
+  meetingDate       DateTime @map("meeting_date")
+  coverageName      String   @map("coverage_name")
+  leaderName        String   @map("leader_name")
+  coLeaderName      String?  @map("co_leader_name")
+  contactPhone      String?  @map("contact_phone")
+  menCount          Int      @default(0) @map("men_count")
+  womenCount        Int      @default(0) @map("women_count")
+  youthMaleCount    Int      @default(0) @map("youth_male_count")
+  youthFemaleCount  Int      @default(0) @map("youth_female_count")
+  childrenCount     Int      @default(0) @map("children_count")
+  totalAttendance   Int      @map("total_attendance")
+  visitorsCount     Int      @default(0) @map("visitors_count")
+  convertsCount     Int      @default(0) @map("converts_count")
+  reconciledCount   Int      @default(0) @map("reconciled_count")
+  messageTopic      String?  @map("message_topic")
+  startTime         String   @map("start_time")
+  endTime           String   @map("end_time")
+  offeringAmount    Decimal? @map("offering_amount") @db.Decimal(10, 2)
+  district          String?
+  neighborhood      String?
+  sector            String?
+  street            String?
+  houseNumber       String?  @map("house_number")
+  wasSupervised     Boolean  @default(false) @map("was_supervised")
+  observations      String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  group    Group @relation(fields: [groupId], references: [id])
+  reporter User  @relation("CellReportReporter", fields: [reporterId], references: [id])
+
+  @@unique([groupId, meetingDate])
+  @@index([groupId])
+  @@index([reporterId])
+  @@index([meetingDate])
+  @@map("cell_reports")
+}
+
+// ============================================================
+// SPIRITUAL STAGE TRANSITIONS
+// ============================================================
+
+model StageTransition {
+  id          String          @id @default(uuid())
+  userId      String          @map("user_id")
+  fromStage   SpiritualStage? @map("from_stage")
+  toStage     SpiritualStage  @map("to_stage")
+  promotedBy  String?         @map("promoted_by")
+  notes       String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  user      User  @relation("StageTransitions", fields: [userId], references: [id])
+  promoter  User? @relation("PromotedTransitions", fields: [promotedBy], references: [id])
+
+  @@index([userId])
+  @@index([toStage])
+  @@index([createdAt])
+  @@map("stage_transitions")
+}
+
+// ============================================================
+// SERMONS
+// ============================================================
+
+model Sermon {
+  id            String       @id @default(uuid())
+  networkId     String       @map("network_id")
+  createdById   String       @map("created_by_id")
+  title         String       @db.VarChar(200)
+  description   String?      @db.Text
+  sermonDate    DateTime     @map("sermon_date")
+  coverImageUrl String?      @map("cover_image_url")
+  videoUrl      String?      @map("video_url")
+  externalLink  String?      @map("external_link")
+  status        SermonStatus @default(DRAFT)
+  publishAt     DateTime?    @map("publish_at")
+  publishedAt   DateTime?    @map("published_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  network    Network      @relation(fields: [networkId], references: [id])
+  createdBy  User         @relation("SermonCreator", fields: [createdById], references: [id])
+  files         SermonFile[]
+  views         SermonView[]
+  notifications Notification[] @relation("SermonNotifications")
+
+  @@index([networkId, status])
+  @@index([status, publishAt])
+  @@index([networkId, sermonDate])
+  @@map("sermons")
+}
+
+model SermonFile {
+  id         String   @id @default(uuid())
+  sermonId   String   @map("sermon_id")
+  fileName   String   @map("file_name")
+  fileUrl    String   @map("file_url")
+  fileSize   Int      @map("file_size")
+  mimeType   String   @map("mime_type")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@index([sermonId])
+  @@map("sermon_files")
+}
+
+model SermonView {
+  id        String   @id @default(uuid())
+  sermonId  String   @map("sermon_id")
+  userId    String   @map("user_id")
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+  user   User   @relation("SermonViews", fields: [userId], references: [id])
+
+  @@unique([sermonId, userId])
+  @@index([sermonId])
+  @@index([userId])
+  @@map("sermon_views")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  type       String
+  title      String
+  body       String?
+  link       String?
+  isRead     Boolean  @default(false) @map("is_read")
+  sermonId   String?  @map("sermon_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user   User    @relation("UserNotifications", fields: [userId], references: [id])
+  sermon Sermon? @relation("SermonNotifications", fields: [sermonId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}

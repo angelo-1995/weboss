@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "../../",
+    "baseUrl": "../../",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "paths": {
+      "@community-os/types": ["packages/types/src/index.ts"],
+      "@community-os/database": ["packages/database/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "../../packages/types/src/**/*",
+    "../../packages/database/src/**/*"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
