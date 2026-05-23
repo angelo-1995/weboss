@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { PageSkeleton } from '@/components/feedback/page-skeleton';

@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
