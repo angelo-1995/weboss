@@ -20,6 +20,10 @@
       "@community-os/database": ["packages/database/src/index.ts"]
     }
   },
+  "ts-node": {
+    "swc": true,
+    "transpileOnly": true
+  },
   "include": [
     "src/**/*",
     "../../packages/types/src/**/*",
