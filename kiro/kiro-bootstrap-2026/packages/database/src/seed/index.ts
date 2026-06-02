@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { seedDemoData } from './demo-data';
 import { seedPipelineStages } from './pipeline-stages';
+import { seedJpdveDemo } from './jpdve-demo';
 
 const prisma = new PrismaClient();
 
@@ -302,6 +303,9 @@ async function main() {
 
   // ── Pipeline Stages (J-PDVE Conexiones) ─────────────────
   await seedPipelineStages();
+
+  // ── J-PDVE Demo Data (Product Owner Review) ─────────────
+  await seedJpdveDemo();
 
   console.log('\n═══════════════════════════════════════════════════');
   console.log('  ALL DEMO CREDENTIALS');
