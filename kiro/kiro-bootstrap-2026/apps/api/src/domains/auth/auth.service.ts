@@ -121,6 +121,7 @@ export class AuthService {
         campusId: true,
         status: true,
         leaderCode: true,
+        ministerialRole: true,
         spiritualStage: true,
         leaderId: true,
         networkId: true,

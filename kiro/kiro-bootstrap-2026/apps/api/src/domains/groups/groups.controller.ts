@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseGuards,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,7 +24,6 @@ import {
   UpdateGroupSchema,
   GroupsQuerySchema,
   type CreateGroupDto,
-  type UpdateGroupDto,
 } from './dto/groups.dto';
 
 @Controller('groups')
@@ -62,11 +62,19 @@ export class GroupsController {
   @Roles('ADMIN', 'SUPER_ADMIN', 'LEADER')
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: UpdateGroupDto,
+    @Body() body: Record<string, unknown>,
     @CurrentUser() actor: CurrentUserData,
   ) {
-    const dto = UpdateGroupSchema.parse(body);
-    return this.groupsService.update(id, dto, actor.id);
+    // Strip unknown fields (frontend may send enriched GET response fields like memberCount, leaderName)
+    const result = UpdateGroupSchema.safeParse(body);
+    if (!result.success) {
+      const errors = result.error.flatten().fieldErrors;
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors,
+      });
+    }
+    return this.groupsService.update(id, result.data, actor.id);
   }
 
   @Delete(':id')

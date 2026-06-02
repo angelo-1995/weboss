@@ -9,6 +9,7 @@ export interface CurrentUser {
   avatarUrl: string | null;
   roles: string[];
   campusId: string | null;
+  ministerialRole: string | null;
 }
 
 interface AuthState {

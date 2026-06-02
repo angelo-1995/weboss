@@ -48,6 +48,7 @@ export const authService = {
       avatarUrl: string | null;
       roles: string[];
       campusId: string | null;
+      ministerialRole: string | null;
     }>('/auth/me', {
       method: 'GET',
       headers: { Authorization: `Bearer ${accessToken}` },

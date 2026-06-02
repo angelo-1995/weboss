@@ -217,6 +217,80 @@ Cada tarjeta de cobertura mostraría:
 
 ---
 
+## Tema 6 — RF-ALT-005: Gestión de Alertas Pastorales
+
+### Análisis del modelo actual
+
+El modelo `OperationalAlert` actual tiene:
+```
+id, campusId, type, targetGroupId, targetUserId, responsibleUserId,
+message, metadata, acknowledged, acknowledgedAt, acknowledgedBy, createdAt
+```
+
+Solo soporta: Pendiente → Acknowledged (binario). No hay estados intermedios ni historial de acciones.
+
+### Modelo propuesto (RF-ALT-005)
+
+**Estados:**
+```
+PENDIENTE → EN_SEGUIMIENTO → RESUELTA
+                           → DESCARTADA
+```
+
+**Acciones sobre alertas:**
+- Registrar nota
+- Registrar llamada
+- Registrar visita
+- Programar seguimiento
+- Marcar resuelta
+- Descartar
+
+**Campos adicionales requeridos:**
+```
+status: PENDING | IN_PROGRESS | RESOLVED | DISMISSED
+assignedTo: userId (quién está atendiendo)
+resolutionDate: DateTime?
+followUpDate: DateTime?
+notes: text (notas de seguimiento)
+```
+
+**Historial:**
+Toda acción debe quedar auditada con timestamp y actor.
+
+**Dashboard:**
+Alertas agrupadas por estado (tarjetas o tabs).
+
+**RBAC (ya implementado en FASE 2):**
+- Líder: Solo alertas de su célula ✅
+- Cobertura: Alertas de células hijas ✅
+- Pastor de Red: Alertas de su red ✅
+- Pastor General: Alertas globales ✅
+
+### Evaluación MVP vs V2
+
+| Aspecto | MVP (ahora) | V2 |
+|---------|-------------|-----|
+| Filtrado por scope | ✅ Ya implementado | — |
+| Acknowledge simple | ✅ Funciona | — |
+| Estados múltiples | ❌ No existe | ✅ |
+| Historial de acciones | ❌ No existe | ✅ |
+| Programar seguimiento | ❌ No existe | ✅ |
+| Vista agrupada por estado | ❌ No existe | ✅ |
+
+### Recomendación
+
+**Para MVP:** Mantener el acknowledge simple. El scope ya funciona correctamente (FASE 2). El líder solo ve sus alertas y puede marcarlas como atendidas.
+
+**Para V2:** Implementar RF-ALT-005 completo con:
+- Migración additive: agregar `status`, `assignedTo`, `resolutionDate`, `followUpDate`
+- Tabla `alert_actions` para historial
+- Frontend con tabs por estado
+- Notificaciones de seguimiento programado
+
+**Clasificación:** HIGH PRIORITY V2 (no bloqueante para piloto)
+
+---
+
 ## Evaluación: ¿Puede iniciarse FASE 3?
 
 ### Respuesta: **SÍ, con condiciones**

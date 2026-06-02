@@ -36,19 +36,22 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     // Enrich with leader, groups, and subordinate count
+    // Null-safe: leaderId may be null, and repo methods may return null
     const [leader, groupMembers, subordinateCount] = await Promise.all([
       user.leaderId
-        ? this.repo.findLeaderInfo(user.leaderId)
+        ? this.repo.findLeaderInfo(user.leaderId).catch(() => null)
         : Promise.resolve(null),
-      this.repo.findUserGroups(id),
-      this.repo.countSubordinates(id),
+      this.repo.findUserGroups(id).catch(() => []),
+      this.repo.countSubordinates(id).catch(() => 0),
     ]);
 
     return {
       ...user,
-      leader,
-      groups: groupMembers,
-      subordinateCount,
+      // Ensure optional relations default to safe values
+      profile: user.profile ?? null,
+      leader: leader ?? null,
+      groups: groupMembers ?? [],
+      subordinateCount: subordinateCount ?? 0,
     };
   }
 

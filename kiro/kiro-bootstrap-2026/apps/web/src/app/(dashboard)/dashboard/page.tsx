@@ -16,10 +16,18 @@ export default function DashboardPage() {
   const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
   const isLeader = roles.includes('LEADER');
 
+  // Contextual title based on role (H-009)
+  const getDashboardTitle = () => {
+    if (isAdmin) return 'Dashboard General';
+    if (isLeader && user?.ministerialRole === 'COBERTURA') return 'Mi Cobertura';
+    if (isLeader) return 'Mi Ministerio';
+    return 'Dashboard';
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-heading tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-heading tracking-tight">{getDashboardTitle()}</h1>
         <p className="text-sm text-muted-foreground">
           {isAdmin
             ? 'Vista general de la organización'

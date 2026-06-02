@@ -49,7 +49,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'PERSONAS',
     items: [
-      { href: '/users', label: 'Acceso al Sistema', icon: Users, shortcut: 'G U' },
+      { href: '/users', label: 'Acceso al Sistema', icon: Users, roles: ['ADMIN', 'SUPER_ADMIN'], shortcut: 'G U' },
       { href: '/personas', label: 'Personas', icon: Users, shortcut: 'G E' },
       { href: '/groups', label: 'Equipos', icon: Network, shortcut: 'G G' },
       { href: '/discipleship', label: 'Discipulado', icon: GitBranch, shortcut: 'G S' },
@@ -62,7 +62,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/cobertura', label: 'Cobertura', icon: ShieldCheck, roles: ['LEADER', 'ADMIN', 'SUPER_ADMIN'] },
       { href: '/networks', label: 'Redes', icon: Network, roles: ['ADMIN', 'SUPER_ADMIN'] },
       { href: '/sermons', label: 'Predicaciones', icon: BookOpen, shortcut: 'G R' },
-      { href: '/sermons/admin', label: 'Gestión Predicaciones', icon: Mic2, roles: ['LEADER', 'ADMIN', 'SUPER_ADMIN'] },
+      { href: '/sermons/admin', label: 'Gestión Predicaciones', icon: Mic2, roles: ['ADMIN', 'SUPER_ADMIN'] },
       { href: '/reports', label: 'Reportes', icon: FileText, badge: 0 },
     ],
   },
