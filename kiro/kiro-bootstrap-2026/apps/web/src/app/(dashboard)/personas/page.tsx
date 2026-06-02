@@ -54,7 +54,7 @@ export default function PersonasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-heading tracking-tight">Personas</h1>
-          <p className="text-sm text-muted-foreground">{meta.total} personas registradas</p>
+          <p className="text-sm text-muted-foreground">Todos los miembros del ministerio — tengan o no acceso al sistema. {meta.total} registrados.</p>
         </div>
         <Link
           href={'/personas/new' as any}
