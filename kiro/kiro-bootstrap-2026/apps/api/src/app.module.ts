@@ -24,6 +24,7 @@ import { AdminModule } from './domains/admin/admin.module';
 import { InvitationsModule } from './domains/invitations/invitations.module';
 import { SermonsModule } from './domains/sermons/sermons.module';
 import { NotificationsModule } from './domains/notifications/notifications.module';
+import { PersonsModule } from './domains/persons/persons.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { DomainEventsModule } from './common/events/events.module';
 import { HierarchyVisibilityModule } from './common/services/hierarchy-visibility.module';
@@ -97,6 +98,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     InvitationsModule,
     SermonsModule,
     NotificationsModule,
+    PersonsModule,
   ],
   providers: [
     {

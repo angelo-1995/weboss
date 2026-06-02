@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { seedDemoData } from './demo-data';
+import { seedPipelineStages } from './pipeline-stages';
 
 const prisma = new PrismaClient();
 
@@ -298,6 +299,9 @@ async function main() {
 
   // ── Demo Data ───────────────────────────────────────────
   await seedDemoData();
+
+  // ── Pipeline Stages (J-PDVE Conexiones) ─────────────────
+  await seedPipelineStages();
 
   console.log('\n═══════════════════════════════════════════════════');
   console.log('  ALL DEMO CREDENTIALS');
