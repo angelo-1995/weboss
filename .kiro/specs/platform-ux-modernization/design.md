@@ -2,13 +2,19 @@
 
 ## Overview
 
-This design transforms Community OS from a functional but UX-limited platform into a modern, mobile-first, analytics-driven SaaS experience. The initiative spans 20 requirements across cell report modernization, user onboarding, groups management, discipleship/leadership visualization, membership workflows, reporting dashboards, organizational analytics, mobile UX with offline support, permission management, design system, operational intelligence, and map integration.
+This design transforms J-PDVE Conexiones (Community OS) from a functional but UX-limited platform into a modern, mobile-first, analytics-driven, premium SaaS experience aligned with the PRD vision of Ministerio Palabras de Vida Eterna.
+
+The initiative spans 28 requirements across: cell report modernization, onboarding, group/membership management, hierarchy visualization, reporting dashboards, organizational analytics, mobile UX with offline support, permission management, design system, operational intelligence, map integration, **report submission rules, Ministry Team management, Person/User separation, pastoral pipeline visualization, premium dark branding, offerings tracking, rankings, and notifications**.
 
 **Design Principles:**
 - Mobile-first: All components designed for touch interaction first, enhanced for desktop
+- Ministry Team as primary unit: All ownership, permissions, and reports are team-based
+- Person/User separation: Persons exist independently of user accounts
+- Premium dark aesthetic: #050505 background, #1565FF primary, #FFB400 gold accents, Anton/Montserrat typography
 - Progressive enhancement: Core functionality works offline, enhanced features require connectivity
 - Existing patterns preserved: Backend follows DDD-lite with repository pattern; frontend uses feature-based architecture with TanStack Query + Zustand
 - Incremental delivery: Each requirement is independently deployable
+- Multi-church ready: Architecture supports future expansion to daughter churches
 
 **Key Technical Decisions:**
 1. **Multi-step wizards** use Zustand stores for step state + React Hook Form per step for validation
@@ -16,7 +22,10 @@ This design transforms Community OS from a functional but UX-limited platform in
 3. **Analytics** computed via PostgreSQL materialized views + Redis caching for dashboard performance
 4. **Graph visualizations** use ReactFlow + dagre (existing) with virtualization for 500+ nodes
 5. **Map integration** uses Leaflet (open-source, no API key required) via react-leaflet
-6. **Design system** extends existing shadcn/ui with mobile-first variants in `@community-os/ui`
+6. **Design system** extends existing shadcn/ui with dark-theme variants using brand colors in `@community-os/ui`
+7. **Ministry Team model** adds a `ministry_teams` table that bridges users and persons with shared permissions
+8. **Report submission window** enforced via middleware that checks day-of-week before accepting/rejecting submissions
+9. **Pastoral pipeline** implemented as configurable stage definitions in a `pipeline_stages` table
 
 ## Architecture
 
@@ -830,3 +839,339 @@ apps/api/src/domains/
     └── delegation.property.test.ts            # Property 18
 ```
 
+
+## PRD-Aligned Extensions (Requirements 21-28)
+
+### New Data Models
+
+#### Ministry Team Model
+
+```prisma
+model MinistryTeam {
+  id              String   @id @default(uuid())
+  name            String   // e.g., "Luis & Oris"
+  ministerialCode String   @unique @map("ministerial_code") // e.g., "E5", "E4.1.1"
+  networkId       String   @map("network_id")
+  coverageId      String   @map("coverage_id")  // supervising cobertura
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  members         MinistryTeamMember[]
+  persons         Person[]
+  cellReports     CellReport[]
+  network         Network  @relation(fields: [networkId], references: [id])
+
+  @@index([networkId])
+  @@index([coverageId])
+  @@index([ministerialCode])
+  @@map("ministry_teams")
+}
+
+model MinistryTeamMember {
+  id             String   @id @default(uuid())
+  teamId         String   @map("team_id")
+  userId         String   @map("user_id")
+  role           String   @default("MEMBER") // LEADER, CO_LEADER, MEMBER
+  joinedAt       DateTime @default(now()) @map("joined_at")
+
+  team           MinistryTeam @relation(fields: [teamId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+  @@map("ministry_team_members")
+}
+```
+
+#### Person Model (Separate from User)
+
+```prisma
+model Person {
+  id              String    @id @default(uuid())
+  fullName        String    @map("full_name")
+  phone           String?
+  email           String?
+  userId          String?   @unique @map("user_id")  // null = no login
+  ministryTeamId  String    @map("ministry_team_id")
+  pipelineStageId String    @map("pipeline_stage_id")
+  joinedAt        DateTime  @default(now()) @map("joined_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  user            User?         @relation(fields: [userId], references: [id])
+  ministryTeam    MinistryTeam  @relation(fields: [ministryTeamId], references: [id])
+  pipelineStage   PipelineStage @relation(fields: [pipelineStageId], references: [id])
+  transitions     PipelineTransition[]
+
+  @@index([ministryTeamId])
+  @@index([pipelineStageId])
+  @@map("persons")
+}
+```
+
+#### Pastoral Pipeline Models
+
+```prisma
+model PipelineStage {
+  id          String   @id @default(uuid())
+  name        String   // "Visitante", "Consolidado", etc.
+  order       Int      // Sequential order in the pipeline
+  maxDays     Int?     @map("max_days")  // Configurable threshold (e.g., 90 days)
+  color       String?  // Hex color for visualization
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  persons     Person[]
+  transitionsFrom PipelineTransition[] @relation("from_stage")
+  transitionsTo   PipelineTransition[] @relation("to_stage")
+
+  @@unique([order])
+  @@map("pipeline_stages")
+}
+
+model PipelineTransition {
+  id          String   @id @default(uuid())
+  personId    String   @map("person_id")
+  fromStageId String   @map("from_stage_id")
+  toStageId   String   @map("to_stage_id")
+  promotedBy  String   @map("promoted_by")  // userId of actor
+  promotedAt  DateTime @default(now()) @map("promoted_at")
+  notes       String?
+
+  person      Person        @relation(fields: [personId], references: [id])
+  fromStage   PipelineStage @relation("from_stage", fields: [fromStageId], references: [id])
+  toStage     PipelineStage @relation("to_stage", fields: [toStageId], references: [id])
+
+  @@index([personId])
+  @@index([fromStageId, toStageId])
+  @@map("pipeline_transitions")
+}
+```
+
+#### Report Submission Window
+
+```prisma
+// Extends CellReport model
+model CellReport {
+  // ... existing fields ...
+  submissionStatus  String  @default("NORMAL") @map("submission_status") // NORMAL, LATE, UNLOCKED
+  unlockedBy        String? @map("unlocked_by")
+  unlockedAt        DateTime? @map("unlocked_at")
+  unlockedReason    String? @map("unlocked_reason")
+}
+```
+
+#### Notification Model
+
+```prisma
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  category    String    // REPORT, RESOURCE, ALERT, SYSTEM
+  title       String
+  message     String
+  actionUrl   String?   @map("action_url")
+  isRead      Boolean   @default(false) @map("is_read")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  expiresAt   DateTime  @map("expires_at")  // 30 days from creation
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+```
+
+### New API Endpoints
+
+#### Ministry Teams
+
+```
+GET    /api/v1/ministry-teams                    # List with filters
+POST   /api/v1/ministry-teams                    # Create team
+GET    /api/v1/ministry-teams/:id                # Team details with persons
+PATCH  /api/v1/ministry-teams/:id                # Update team
+POST   /api/v1/ministry-teams/:id/multiply       # Team multiplication
+GET    /api/v1/ministry-teams/:id/persons        # List assigned persons
+POST   /api/v1/ministry-teams/:id/persons        # Assign person to team
+```
+
+#### Persons
+
+```
+GET    /api/v1/persons                           # List all persons (with/without accounts)
+POST   /api/v1/persons                           # Create person (no account)
+PATCH  /api/v1/persons/:id                       # Update person
+POST   /api/v1/persons/:id/create-account        # Create user account for person
+POST   /api/v1/persons/:id/transfer              # Transfer to another team
+GET    /api/v1/persons/:id/pipeline-history      # Pipeline stage transitions
+POST   /api/v1/persons/:id/promote               # Advance pipeline stage
+```
+
+#### Pipeline
+
+```
+GET    /api/v1/pipeline/stages                   # Get all configurable stages
+PUT    /api/v1/pipeline/stages                   # Update stage configuration
+GET    /api/v1/pipeline/dashboard?networkId=&coverageId=  # Funnel data
+GET    /api/v1/pipeline/bottlenecks              # Stages exceeding threshold
+```
+
+#### Report Submission Window
+
+```
+GET    /api/v1/reports/cell/submission-window     # Current window status
+POST   /api/v1/reports/cell/:id/unlock           # Cobertura+ unlocks a report
+```
+
+#### Notifications
+
+```
+GET    /api/v1/notifications?category=&unread=    # List user notifications
+PATCH  /api/v1/notifications/:id/read             # Mark as read
+POST   /api/v1/notifications/mark-all-read        # Mark all as read
+DELETE /api/v1/notifications/clear                 # Clear dismissed
+```
+
+#### Rankings
+
+```
+GET    /api/v1/analytics/rankings/teams?metric=attendance&period=12w&limit=10
+GET    /api/v1/analytics/rankings/coverages?metric=attendance&period=12w&limit=10
+GET    /api/v1/analytics/rankings/networks?metric=attendance&period=12w&limit=10
+```
+
+#### Offerings
+
+```
+GET    /api/v1/analytics/offerings?range=12w&networkId=
+Response: { weeklyTotal, trend[], networkComparison[], topTeams[] }
+```
+
+### New Frontend Feature Modules
+
+```
+features/
+├── ministry-teams/
+│   ├── components/
+│   │   ├── TeamCard.tsx             # Visual card with code, members, status
+│   │   ├── TeamGrid.tsx             # Grid/list view
+│   │   ├── TeamWizard.tsx           # Create team wizard
+│   │   ├── TeamMultiply.tsx         # Multiplication wizard
+│   │   └── CodeHierarchyTree.tsx    # Ministerial code tree view
+│   ├── hooks/
+│   ├── schemas/
+│   └── stores/
+├── persons/
+│   ├── components/
+│   │   ├── PersonCard.tsx           # Card with pipeline stage indicator
+│   │   ├── PersonGrid.tsx           # Paginated grid
+│   │   ├── PersonCreate.tsx         # Create without account
+│   │   ├── CreateAccountDialog.tsx  # Link person to user
+│   │   └── TransferDialog.tsx       # Transfer between teams
+│   ├── hooks/
+│   └── schemas/
+├── pipeline/
+│   ├── components/
+│   │   ├── PipelineFunnel.tsx       # Full pipeline visualization
+│   │   ├── StageDrillDown.tsx       # Persons in a stage
+│   │   ├── StageConfig.tsx          # Admin stage configuration
+│   │   └── PromotionDialog.tsx      # Promote person
+│   ├── hooks/
+│   └── stores/
+├── notifications/
+│   ├── components/
+│   │   ├── NotificationBell.tsx     # Header bell with count
+│   │   ├── NotificationPanel.tsx    # Dropdown panel
+│   │   └── NotificationItem.tsx     # Individual notification
+│   └── hooks/
+└── theme/
+    ├── dark-theme.css               # CSS variables for dark mode
+    ├── light-theme.css              # CSS variables for light mode
+    ├── fonts.ts                     # Anton + Montserrat config
+    └── ThemeProvider.tsx            # Theme toggle context
+```
+
+### Dark Theme Design System
+
+```css
+/* Dark theme CSS variables (default) */
+:root[data-theme="dark"] {
+  --background: #050505;
+  --foreground: #F5F7FA;
+  --primary: #1565FF;
+  --primary-foreground: #F5F7FA;
+  --accent: #FFB400;
+  --accent-foreground: #050505;
+  --card: #0A0A0A;
+  --card-foreground: #F5F7FA;
+  --border: #1A1A1A;
+  --muted: #1A1A2E;
+  --muted-foreground: #A0A0B0;
+  --destructive: #FF4444;
+  --success: #FFB400;
+  --chart-1: #1565FF;
+  --chart-2: #FFB400;
+  --chart-3: #4A90D9;
+  --chart-4: #7B61FF;
+  --chart-5: #00D1B2;
+}
+
+/* Typography */
+--font-heading: 'Anton', sans-serif;
+--font-body: 'Montserrat', sans-serif;
+```
+
+### Report Submission Window Logic
+
+```typescript
+// Middleware/guard for submission window enforcement
+interface SubmissionWindowStatus {
+  status: 'OPEN' | 'LATE' | 'CLOSED';
+  windowEnd: Date;         // When current window closes
+  nextWindowStart: Date;   // When next window opens
+  remainingHours: number;
+}
+
+function getSubmissionWindowStatus(now: Date): SubmissionWindowStatus {
+  const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+  
+  if (dayOfWeek === 0) return { status: 'OPEN', ... };
+  if (dayOfWeek >= 1 && dayOfWeek <= 3) return { status: 'LATE', ... };
+  return { status: 'CLOSED', ... };  // Thursday-Saturday
+}
+```
+
+### Additional Correctness Properties
+
+#### Property 21: Report Submission Window
+
+*For any* date/time value, the submission window status SHALL be 'OPEN' on Sundays, 'LATE' on Monday-Wednesday, and 'CLOSED' on Thursday-Saturday. A report submission SHALL be accepted if and only if the status is 'OPEN' or 'LATE', or the report has been explicitly unlocked by a Cobertura+ user.
+
+**Validates: Requirements 21.1, 21.2, 21.3, 21.5**
+
+#### Property 22: Ministry Team Shared Ownership
+
+*For any* Ministry Team with N members, all N members SHALL have identical effective permissions for: submitting reports for the team, viewing resources, and managing persons assigned to the team. A report submitted by any team member SHALL be visible and editable by all other team members.
+
+**Validates: Requirements 22.3, 1.10**
+
+#### Property 23: Person-User Independence
+
+*For any* person record, the person SHALL exist in the system regardless of whether a linked user account exists. Creating a user account for a person SHALL NOT modify any person fields. Deleting a user account SHALL NOT delete the person record.
+
+**Validates: Requirements 23.1, 23.3**
+
+#### Property 24: Pipeline Stage Ordering
+
+*For any* pipeline configuration, stages SHALL maintain a strict total order defined by the `order` field. A person SHALL only be promoted to a stage with a higher order value. The conversion rate between stages A and B (where B.order = A.order + 1) SHALL equal (transitions from A to B in period) / (persons in stage A at period start) × 100.
+
+**Validates: Requirements 24.1, 24.2, 24.7**
+
+#### Property 25: Notification Lifecycle
+
+*For any* notification, it SHALL be visible for exactly 30 days from creation. After 30 days, it SHALL be automatically excluded from query results. The unread count SHALL equal the count of notifications where isRead = false AND createdAt > (now - 30 days).
+
+**Validates: Requirements 28.1, 28.7**

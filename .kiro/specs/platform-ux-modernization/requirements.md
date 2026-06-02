@@ -2,19 +2,32 @@
 
 ## Introduction
 
-Platform UX Modernization is a comprehensive initiative to transform Community OS from a functionally correct but UX-limited church management platform into a modern, mobile-first, analytics-driven, premium SaaS experience. The initiative covers 10 areas: cell report form modernization, user onboarding wizard, groups management, discipleship management, leadership hierarchy visualization, membership assignment, reporting dashboards, organizational analytics, mobile reporting UX, and permission scopes UI.
+Platform UX Modernization is a comprehensive initiative to transform J-PDVE Conexiones (Community OS) from a functionally correct but UX-limited church management platform into a modern, mobile-first, analytics-driven, premium SaaS experience aligned with the vision of Ministerio Palabras de Vida Eterna.
 
-The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with shadcn/ui, TanStack Query, React Hook Form, Zustand, Recharts, and ReactFlow. All existing business logic remains unchanged; this initiative focuses exclusively on UX, mobile-first design, analytics visualization, and admin tooling improvements.
+The initiative covers 13 areas: cell report form modernization, user onboarding wizard, groups management, discipleship management, leadership hierarchy visualization, membership assignment, reporting dashboards, organizational analytics, mobile reporting UX, permission scopes UI, report submission rules & deadlines, premium dark-theme design system, and pastoral pipeline visualization.
+
+The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with shadcn/ui, TanStack Query, React Hook Form, Zustand, Recharts, and ReactFlow. All existing business logic remains unchanged; this initiative focuses exclusively on UX, mobile-first design, analytics visualization, admin tooling improvements, and alignment with the PRD-defined domain model (Ministry Teams as primary unit, Person vs User separation, hierarchical ministerial codes).
+
+**Key PRD Alignment:**
+- The primary organizational unit is the **Ministry Team** (Equipo Ministerial), not an individual leader. A team may have multiple users sharing permissions and reports.
+- **Person** and **User** are separate entities; a person may exist without system access.
+- **Ministerial Codes** (E, E4, E4.1, E4.1.1) are manually assigned and represent the hierarchical structure.
+- Reports follow a submission window: Sunday (normal), Monday-Wednesday (late), Thursday+ (locked).
+- The platform must support future multi-church architecture from day one.
 
 ## Glossary
 
 - **Wizard**: A multi-step form interface that guides the user through sequential stages with validation per step
-- **Cell_Report_Form**: The frontend component that allows cell leaders to submit weekly attendance and growth reports for their group
+- **Cell_Report_Form**: The frontend component that allows Ministry Teams to submit weekly attendance and growth reports for their cell group
+- **Ministry_Team (Equipo Ministerial)**: The primary organizational unit consisting of one or more users who share permissions, reports, and person ownership (e.g., "Luis & Oris - E5")
+- **Ministerial_Code**: A hierarchical code manually assigned to each team/position representing its place in the ministry structure (e.g., E4.1.1)
+- **Person**: An individual tracked in the system who may or may not have a user account (login). Persons are assigned to Ministry Teams.
+- **Pastoral_Pipeline**: The configurable progression stages a person moves through: Visitante → Consolidado → Discipulado → Academia N1 → Academia N2 → Academia N3 → Voluntario → Líder Potencial → Líder → Cobertura
 - **Stepper_Control**: A large touch-friendly numeric input control with increment/decrement buttons optimized for mobile interaction
 - **Autosave_Engine**: A client-side mechanism that persists form state to localStorage and optionally to the server as a draft
 - **Sparkline**: A small inline chart (typically a line or bar) embedded within a card or table row to show trends
 - **Bottom_Sheet**: A mobile UI pattern where a modal slides up from the bottom of the screen instead of appearing centered
-- **Funnel_Chart**: A visualization showing progressive conversion through sequential stages (e.g., GANADO → CONSOLIDADO → DISCIPULADO → ENVIADO)
+- **Funnel_Chart**: A visualization showing progressive conversion through sequential pastoral pipeline stages
 - **Heatmap**: A data visualization using color intensity to represent values across two dimensions (e.g., activity by day/hour)
 - **Permission_Scope**: A contextual boundary that limits permission applicability (global, network, discipleship, group, leadership)
 - **KPI_Card**: A dashboard component displaying a key performance indicator with value, trend, and comparison data
@@ -23,21 +36,24 @@ The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with sh
 - **Offline_Sync_Engine**: A service worker-based mechanism that queues mutations locally and synchronizes when connectivity is restored
 - **Visual_State_Machine**: A UI component that displays entity status transitions as an interactive flowchart
 - **Cohort_Analysis**: An analytics technique that groups users by their join date and tracks behavior over time
-- **Network**: An organizational hierarchy unit in the church structure (Pastor General → Pastor Red → Cobertura → Líder → Estaca → Miembro)
-- **Spiritual_Stage**: The progression stages of a church member: GANADO → CONSOLIDADO → DISCIPULADO → ENVIADO
-- **Coverage_Leader (Cobertura)**: A leader who supervises other cell leaders within the ministerial hierarchy
+- **Network (Red)**: An organizational hierarchy unit: Pastor General → Pastor de Red → Cobertura → Equipo Ministerial → Personas
+- **Spiritual_Stage**: Legacy simplified stages (GANADO → CONSOLIDADO → DISCIPULADO → ENVIADO). Being superseded by Pastoral_Pipeline.
+- **Coverage_Leader (Cobertura)**: A leader who supervises Ministry Teams within the ministerial hierarchy
 - **ReactFlow_Graph**: The existing graph visualization library used for organigrama and hierarchy displays
-- **Group_Card**: A visual card component displaying group summary information (name, leader, attendance trend, member count)
+- **Group_Card**: A visual card component displaying group summary information (team name, code, attendance trend, member count)
+- **Report_Submission_Window**: The time-based rules for report submission — Normal (Sunday), Late (Monday-Wednesday), Locked (Thursday onwards)
+- **Evidence_Photo**: A photo attached to a cell report as visual evidence of the meeting
+- **Dark_Theme**: The premium dark visual identity using #050505 black, #1565FF primary blue, #FFB400 gold accents
 
 ## Requirements
 
 ### Requirement 1: Multi-Step Cell Report Wizard
 
-**User Story:** As a cell leader, I want to submit my weekly cell report through a guided multi-step wizard, so that the process is less overwhelming and I can complete it efficiently on my mobile device.
+**User Story:** As a Ministry Team member, I want to submit my weekly cell report through a guided multi-step wizard, so that the process is less overwhelming and I can complete it efficiently on my mobile device.
 
 #### Acceptance Criteria
 
-1. WHEN the cell leader opens the report form, THE Cell_Report_Form SHALL display a 5-step wizard with steps: Identificación (groupId, cellCode, meetingDate, coverageName, leaderName, coLeaderName, contactPhone), Asistencia (menCount, womenCount, youthMaleCount, youthFemaleCount, childrenCount, visitorsCount, convertsCount, reconciledCount), Crecimiento (messageTopic, wasSupervised), Reunión (startTime, endTime, offeringAmount, district, neighborhood, sector, street, houseNumber, observations), and Resumen (read-only review)
+1. WHEN a Ministry Team member opens the report form, THE Cell_Report_Form SHALL display a 5-step wizard with steps: Identificación (ministryTeamId, ministerialCode, meetingDate, coverageName, leaderName, coLeaderName, contactPhone), Asistencia (menCount, womenCount, youthMaleCount, youthFemaleCount, childrenCount, visitorsCount, convertsCount, reconciledCount), Crecimiento (messageTopic, wasSupervised, offeringAmount), Reunión (startTime, endTime, district, neighborhood, sector, street, houseNumber, latitude, longitude, evidencePhoto), and Resumen (read-only review)
 2. THE Cell_Report_Form SHALL display a progress indicator showing the current step number (1 through 5), step name, and completion percentage calculated as (current step index / total steps) × 100
 3. WHEN the user completes a step and taps "Siguiente", THE Cell_Report_Form SHALL validate only the fields belonging to the current step before advancing to the next step
 4. IF validation fails on the current step, THEN THE Cell_Report_Form SHALL display inline error messages adjacent to each invalid field and prevent advancement to the next step
@@ -45,6 +61,8 @@ The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with sh
 6. WHEN the user reaches the Resumen step, THE Cell_Report_Form SHALL display a read-only summary of all entered data organized by section (Identificación, Asistencia, Crecimiento, Reunión)
 7. WHEN the user taps "Enviar" from the Resumen step, THE Cell_Report_Form SHALL disable the submit button, display a loading indicator, and send the complete report to the backend API
 8. IF the report submission fails due to a network error or server error, THEN THE Cell_Report_Form SHALL re-enable the submit button, display an error message indicating the submission failed, and preserve all entered data so the user can retry without re-entering information
+9. THE Cell_Report_Form SHALL auto-populate the Identificación step with the Ministry Team's ministerial code, coverage name, and team member names from the authenticated user's team profile
+10. THE Cell_Report_Form SHALL allow any member of the Ministry Team to submit or edit the report (shared team ownership)
 
 ### Requirement 2: Cell Report Autosave and Draft Support
 
@@ -287,7 +305,7 @@ The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with sh
 
 ### Requirement 18: Global Mobile-First Design System
 
-**User Story:** As a user on any device, I want all platform interfaces to be optimized for mobile-first interaction, so that I have a premium experience regardless of screen size.
+**User Story:** As a user on any device, I want all platform interfaces to be optimized for mobile-first interaction with a premium dark-themed experience, so that I have a cinematic, youth-oriented experience regardless of screen size.
 
 #### Acceptance Criteria
 
@@ -298,6 +316,9 @@ The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with sh
 5. WHEN a create or submit operation completes successfully (report submission, member creation, group creation, or membership assignment), THE Platform SHALL display a success celebration animation (confetti or checkmark) lasting between 2 and 4 seconds
 6. IF a data-fetching request takes longer than 10 seconds without a response, THEN THE Platform SHALL replace the skeleton placeholder with an error state indicating the request timed out and offering a retry action
 7. THE Platform SHALL maintain all user-facing text, labels, and descriptions in Spanish language
+8. THE Platform SHALL default to a dark theme using the J-PDVE Conexiones color palette: primary background #050505, primary blue #1565FF, gold accent #FFB400, and light text #F5F7FA
+9. THE Platform SHALL use Anton font for headings and Montserrat for body text and UI elements
+10. THE Platform SHALL include a theme toggle (dark/light) that persists the user's preference in localStorage
 
 ### Requirement 19: Operational Intelligence Alerts
 
@@ -325,3 +346,113 @@ The platform currently uses NestJS 10 + Next.js 15 + Prisma + PostgreSQL with sh
 5. IF one or more groups do not have GPS coordinates, THEN THE Groups_Page SHALL display a count of groups without coordinates alongside the map and exclude them from the map markers
 6. WHEN the map view is activated, THE Groups_Page SHALL set the initial viewport to fit all visible markers within the map bounds
 7. THE Groups_Page SHALL highlight areas beyond a 2-kilometer radius from any group marker using a reduced-opacity overlay to indicate zones without group coverage
+
+
+### Requirement 21: Report Submission Window & Deadline Rules
+
+**User Story:** As a pastor, I want report submissions to follow strict time-based rules (Sunday normal, Monday-Wednesday late, Thursday locked), so that reports are timely and data integrity is maintained.
+
+#### Acceptance Criteria
+
+1. THE Cell_Report_Form SHALL allow normal submission (no warnings) when the current day is Sunday
+2. WHEN the current day is Monday, Tuesday, or Wednesday, THE Cell_Report_Form SHALL allow submission but display a "Late Submission" badge on the report and a warning banner indicating the report is being submitted after the normal deadline
+3. WHEN the current day is Thursday, Friday, or Saturday, THE Cell_Report_Form SHALL disable the submit button and display a message indicating that the submission window is closed until next Sunday
+4. WHEN a Cobertura or higher-level leader views a late report, THE Reporting_Dashboard SHALL visually distinguish late reports from on-time reports using a distinct color indicator (e.g., amber badge)
+5. THE System SHALL allow Cobertura-level or higher leaders to unlock a specific report for editing after the submission window has closed, with an audit log entry recording the unlock action, actor, and reason
+6. THE Cell_Report_Form SHALL display a countdown timer showing the remaining time in the current submission window (e.g., "Quedan 2 días para enviar")
+7. THE Reporting_Dashboard SHALL include a "late submission rate" metric showing the percentage of reports submitted Monday-Wednesday vs. Sunday for each Ministry Team over the last 12 weeks
+
+### Requirement 22: Ministry Team Management UX
+
+**User Story:** As a Pastor de Red, I want to create and manage Ministry Teams as the primary organizational unit, so that permissions, reports, and person ownership are team-based rather than individual-based.
+
+#### Acceptance Criteria
+
+1. THE Ministry_Team_Page SHALL display teams as visual cards showing: team name (e.g., "Luis & Oris"), ministerial code (e.g., "E5"), member avatars, person count (assigned people), and reporting status (on-time, late, or missing for current week)
+2. THE Ministry_Team_Page SHALL allow creation of a new Ministry Team via a wizard with steps: Team Members (search and select 1-4 users), Team Details (name, ministerial code assignment), and Cobertura Assignment (select supervising coverage)
+3. WHEN a Ministry Team is created, THE System SHALL assign shared permissions to all team members, where any team member can submit reports, view resources, and manage persons assigned to the team
+4. THE Ministry_Team_Page SHALL display the ministerial code hierarchy as a visual tree (E → E4 → E4.1 → E4.1.1) with the ability to expand/collapse branches
+5. WHEN a person is assigned to a Ministry Team, THE System SHALL record the ownership link and display the person in the team's person list with their current pipeline stage
+6. THE Ministry_Team_Page SHALL support "team multiplication" — splitting a team into two new teams with a wizard that assigns persons to each new team and updates ministerial codes
+7. THE Ministry_Team_Page SHALL include search by team name or ministerial code with 300ms debounce and filters for network, coverage, and reporting status
+
+### Requirement 23: Person vs User Separation UX
+
+**User Story:** As an administrator, I want to register persons in the system without requiring them to have login credentials, so that we can track visitors and new members from their first contact.
+
+#### Acceptance Criteria
+
+1. THE Person_Page SHALL display all persons (with or without user accounts) in a paginated card grid showing: name, pipeline stage, assigned Ministry Team, and an indicator showing whether they have a user account (login enabled)
+2. THE Person_Page SHALL allow creating a person without creating a user account, requiring only: full name, phone or email, and assigned Ministry Team
+3. WHEN a person is ready to receive system access, THE Person_Page SHALL provide a "Create Account" action that generates user credentials and links them to the existing person record
+4. THE Person_Page SHALL clearly differentiate between persons with active accounts (blue indicator) and persons without accounts (gray indicator) in all views
+5. THE Person_Page SHALL allow transferring a person from one Ministry Team to another with an audit trail recording: source team, destination team, transfer date, and actor
+6. WHEN viewing a Ministry Team's details, THE System SHALL display all assigned persons grouped by pipeline stage with counts per stage
+
+### Requirement 24: Pastoral Pipeline Visualization
+
+**User Story:** As a pastor, I want to visualize the full pastoral pipeline (Visitante through Cobertura) with progression tracking, so that I can monitor discipleship advancement and identify bottlenecks.
+
+#### Acceptance Criteria
+
+1. THE Pipeline_Dashboard SHALL display the full pastoral pipeline as a horizontal funnel with stages: Visitante → Consolidado → Discipulado → Academia N1 → Academia N2 → Academia N3 → Voluntario → Líder Potencial → Líder → Cobertura
+2. THE Pipeline_Dashboard SHALL show the count of persons in each stage and the conversion rate between consecutive stages calculated as (persons who advanced to next stage in last 90 days) / (persons in current stage at period start) × 100
+3. WHEN the user clicks a pipeline stage, THE Pipeline_Dashboard SHALL display a drill-down list of all persons in that stage with: name, Ministry Team, days in current stage, and a "Promote" action button
+4. THE Pipeline_Dashboard SHALL highlight stages where the average time exceeds a configurable threshold (default: 90 days for Consolidado, 180 days for Discipulado, 120 days for each Academia level) using an amber warning indicator
+5. THE Pipeline_Dashboard SHALL support filtering by network, coverage, and Ministry Team to show pipeline progression for specific organizational segments
+6. THE Pipeline_Dashboard stages SHALL be configurable by the Pastor General — the admin can add, remove, reorder, or rename stages via a settings interface
+7. WHEN a person is promoted to the next pipeline stage, THE System SHALL record the transition with timestamp and actor, and display a celebration animation
+
+### Requirement 25: Premium Dark Theme & Branding
+
+**User Story:** As a user, I want the platform to have a premium, cinematic dark-themed visual identity with the J-PDVE Conexiones branding, so that the experience feels modern and youth-oriented.
+
+#### Acceptance Criteria
+
+1. THE Platform SHALL default to a dark theme using the color palette: primary background #050505, primary blue #1565FF, gold accent #FFB400, and light text #F5F7FA
+2. THE Platform SHALL use Anton font for all headings (H1-H4) and Montserrat for body text, labels, and UI elements
+3. THE Platform SHALL include a theme toggle allowing users to switch between dark mode and light mode, persisting the preference in localStorage
+4. THE Platform SHALL apply the dark theme to all existing shadcn/ui components by extending the CSS variables in the design system
+5. THE Platform SHALL display the J-PDVE Conexiones logo and branding on the login page, sidebar header, and page title
+6. THE Platform SHALL use gold (#FFB400) for success indicators, celebrations, and achievement badges, and primary blue (#1565FF) for primary actions and navigation highlights
+7. ALL charts and visualizations SHALL use a color palette derived from the brand colors: #1565FF (primary series), #FFB400 (secondary/highlight), #4A90D9 (tertiary), with sufficient contrast against the #050505 background
+
+### Requirement 26: Report Offerings Dashboard
+
+**User Story:** As a pastor, I want to track and visualize offering amounts across all cell groups, so that I can monitor financial health and stewardship.
+
+#### Acceptance Criteria
+
+1. THE Reporting_Dashboard SHALL display a KPI_Card for total weekly offerings showing the sum of all offeringAmount values from reports submitted in the current calendar week
+2. THE Reporting_Dashboard SHALL display a 12-week rolling line chart of total offerings with week-over-week percentage change
+3. THE Reporting_Dashboard SHALL display a network comparison table showing total offerings per network for the selected date range, sorted by amount descending
+4. THE Reporting_Dashboard SHALL display a Top 10 ranking of Ministry Teams by average weekly offering over the last 12 weeks
+5. IF offerings data is not available for the selected period, THEN THE Reporting_Dashboard SHALL display an empty state indicating no offering data exists for the selected filters
+6. THE Reporting_Dashboard SHALL include offerings in the Excel/PDF export alongside attendance and growth metrics
+
+### Requirement 27: Dashboard Rankings (Top 10)
+
+**User Story:** As a pastor, I want to see Top 10 rankings for teams, coverages, and networks, so that I can recognize high performers and identify areas needing support.
+
+#### Acceptance Criteria
+
+1. THE Advanced_Dashboard SHALL display a Top 10 Ministry Teams ranking by total attendance over the selected period, showing team name, ministerial code, and total attendance value
+2. THE Advanced_Dashboard SHALL display a Top 10 Coverages ranking by total attendance of all their supervised teams, showing coverage name, team count, and total attendance
+3. THE Advanced_Dashboard SHALL display a Top 10 Networks ranking by total attendance, showing network name, team count, and total attendance
+4. WHEN the user clicks a ranking entry, THE Advanced_Dashboard SHALL navigate to the detail view for that team, coverage, or network
+5. THE Advanced_Dashboard SHALL allow toggling the ranking metric between: attendance, visitors, converts, offerings, and reporting compliance
+6. THE Advanced_Dashboard SHALL display trend arrows (up/down/unchanged) comparing the current period rank to the previous period rank for each entry
+
+### Requirement 28: In-App Notifications Center
+
+**User Story:** As any user, I want a centralized notification center with categorized notifications, so that I stay informed about reports, resources, and ministry activities.
+
+#### Acceptance Criteria
+
+1. THE Platform SHALL display a notification bell icon in the header showing the count of unread notifications (maximum display: "99+")
+2. WHEN the user clicks the notification bell, THE Platform SHALL display a notification panel with notifications grouped by category: Reports (pending, approved, commented), Resources (new resource available), Alerts (pastoral alerts), and System (account changes)
+3. THE Platform SHALL generate notifications for: new resource available, report pending submission (Saturday reminder), report approved by coverage, report commented by coverage, and pastoral alert generated
+4. WHEN the user clicks a notification, THE Platform SHALL navigate to the relevant context (report detail, resource page, alert detail) and mark the notification as read
+5. THE Platform SHALL allow marking all notifications as read and provide a "clear all" action for dismissed notifications
+6. THE Platform SHALL display notifications in chronological order within each category, with unread notifications visually distinguished from read ones
+7. THE Platform SHALL retain notifications for 30 days, after which they are automatically archived and no longer visible in the panel
