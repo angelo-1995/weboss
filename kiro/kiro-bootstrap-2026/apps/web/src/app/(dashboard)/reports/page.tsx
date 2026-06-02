@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { PageHeader } from '@/components/layout/page-header';
-import { CellReportForm } from '@/features/reporting/components/CellReportForm';
+import { ReportWizard } from '@/features/reporting/components/wizard/ReportWizard';
 import { ExportButton } from '@/features/reporting/components/export-button';
 
 export default function ReportsPage() {
@@ -10,7 +10,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Reporte de Célula"
-        description="Registra el informe semanal de tu célula"
+        description="Registra el informe semanal de tu equipo ministerial"
       />
       <div className="flex flex-wrap gap-3">
         <Link
@@ -21,7 +21,7 @@ export default function ReportsPage() {
         </Link>
         <ExportButton />
       </div>
-      <CellReportForm />
+      <ReportWizard />
     </div>
   );
 }
