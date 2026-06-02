@@ -3,7 +3,7 @@ builder = "nixpacks"
 buildCommand = "corepack enable && pnpm install --force && pnpm --filter @community-os/database db:generate && pnpm --filter @community-os/api build"
 
 [deploy]
-startCommand = "node apps/api/dist/apps/api/src/main.js"
+startCommand = "node apps/api/dist/main.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
