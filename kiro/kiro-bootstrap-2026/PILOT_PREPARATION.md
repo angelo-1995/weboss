@@ -140,6 +140,7 @@ Campus: sede-central
 13. ¿Qué fue lo más difícil o confuso?
 14. ¿Qué le agregarías?
 15. ¿Recomendarías esta herramienta a otros líderes? (Sí/No/Tal vez)
+16. **Si mañana elimináramos el sistema, ¿preferirías volver al papel o continuar usando la aplicación?** (Volver al papel / Continuar con la app / Me da igual)
 
 ---
 
@@ -156,6 +157,8 @@ Campus: sede-central
 | NPS (pregunta 15 del formulario) | ≥ 60% "Sí" | 80%+ |
 | Errores/bugs reportados | ≤ 5 críticos | 0 críticos |
 | Satisfacción promedio (pregunta 1) | ≥ 3.5/5 | 4.0+ |
+| **Tiempo promedio para completar un reporte** | **≤ 5 minutos** | **≤ 3 minutos** |
+| **Preferencia app vs papel (pregunta 16)** | **≥ 60% app** | **≥ 80% app** |
 
 ### Métricas Cualitativas
 
