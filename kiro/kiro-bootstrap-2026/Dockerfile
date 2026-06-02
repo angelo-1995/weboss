@@ -5,7 +5,7 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-# Copy package files
+# Copy package files first (for caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages/database/package.json packages/database/
 COPY packages/types/package.json packages/types/
@@ -14,16 +14,17 @@ COPY packages/ui/package.json packages/ui/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 
-# Install ALL dependencies (not production-only)
+# Install ALL dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source
-COPY . .
+# Copy only what's needed for API build (not web source)
+COPY packages/ packages/
+COPY apps/api/ apps/api/
 
 # Generate Prisma client
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 
-# Build API
+# Build ONLY the API (not web)
 RUN pnpm --filter @community-os/api build
 
 # Start
