@@ -210,6 +210,9 @@ model User {
   // Sprint 3: Operational Alerts
   alertsResponsible OperationalAlert[] @relation("AlertResponsible")
 
+  // ADR-011: Ministerial Ownership
+  ownedPersons Person[] @relation("PersonOwner")
+
   @@index([email])
   @@index([status])
   @@index([campusId])
@@ -784,6 +787,7 @@ model Person {
   avatarUrl       String?   @map("avatar_url") @db.VarChar(500)
   pipelineStageId String?   @map("pipeline_stage_id")
   currentGroupId  String?   @map("current_group_id")
+  ownerLeaderId   String?   @map("owner_leader_id")
   notes           String?   @db.Text
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -793,11 +797,13 @@ model Person {
   campus          Campus                  @relation(fields: [campusId], references: [id])
   pipelineStage   PipelineStageConfig?    @relation(fields: [pipelineStageId], references: [id])
   currentGroup    Group?                  @relation("PersonCurrentGroup", fields: [currentGroupId], references: [id])
+  ownerLeader     User?                   @relation("PersonOwner", fields: [ownerLeaderId], references: [id])
   pipelineHistory PersonPipelineHistory[]
   teamHistory     PersonTeamHistory[]
 
   @@index([campusId])
   @@index([currentGroupId])
+  @@index([ownerLeaderId])
   @@index([pipelineStageId])
   @@index([campusId, firstName, lastName])
   @@map("persons")

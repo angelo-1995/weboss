@@ -21,13 +21,30 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: JwtPayload) {
     const user = await this.db.user.findFirst({
       where: { id: payload.sub, deletedAt: null },
-      select: { id: true, email: true, roles: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        roles: true,
+        status: true,
+        campusId: true,
+        leaderCode: true,
+        networkId: true,
+      },
     });
 
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException();
     }
 
-    return { ...user, sessionId: payload.sessionId };
+    return {
+      id: user.id,
+      email: user.email,
+      roles: user.roles,
+      status: user.status,
+      sessionId: payload.sessionId,
+      campusId: user.campusId ?? '',
+      leaderCode: user.leaderCode ?? null,
+      networkId: user.networkId ?? null,
+    };
   }
 }

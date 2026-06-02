@@ -2,16 +2,64 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PersonsRepository } from './persons.repository';
 import { CreatePersonDto, UpdatePersonDto, AdvancePipelineDto, TransferPersonDto, PersonsQueryDto } from './dto/persons.dto';
 import { DatabaseService } from '../../infrastructure/database/database.service';
+import { OwnershipService } from '../../common/services/ownership.service';
+import { CurrentUserData } from '../auth/decorators/current-user.decorator';
 
 @Injectable()
 export class PersonsService {
   constructor(
     private readonly repository: PersonsRepository,
     private readonly db: DatabaseService,
+    private readonly ownershipService: OwnershipService,
   ) {}
 
-  async create(dto: CreatePersonDto, campusId: string, actorId: string) {
-    const person = await this.repository.create({ ...dto, campusId });
+  /**
+   * ADR-011: Determine ownerLeaderId based on role and group assignment.
+   *
+   * Rules:
+   * - LEADER: ownerLeaderId = authenticated user (the leader who creates owns)
+   * - COBERTURA role (user with ministerialRole COBERTURA): ownerLeaderId = leader of assigned group
+   * - ADMIN/SUPER_ADMIN: ownerLeaderId = leader of assigned group if group specified, else null
+   * - No group specified: ownerLeaderId = null
+   */
+  private async resolveOwnerLeaderId(
+    actorId: string,
+    roles: string[],
+    currentGroupId?: string | null,
+  ): Promise<string | null> {
+    const isAdmin = roles.some((r) => ['ADMIN', 'SUPER_ADMIN'].includes(r));
+    const isLeader = roles.includes('LEADER');
+
+    // If actor is a LEADER (non-admin), they own the person they create
+    if (isLeader && !isAdmin) {
+      return actorId;
+    }
+
+    // For ADMIN/SUPER_ADMIN or COBERTURA: assign to group leader if group specified
+    if (currentGroupId) {
+      const groupLeader = await this.db.groupMember.findFirst({
+        where: { groupId: currentGroupId, role: 'LEADER', leftAt: null },
+        select: { userId: true },
+      });
+      return groupLeader?.userId ?? null;
+    }
+
+    // No group → no owner yet
+    return null;
+  }
+
+  async create(dto: CreatePersonDto, actor: CurrentUserData) {
+    const campusId = actor.campusId;
+    const actorId = actor.id;
+
+    // ADR-011: Determine ownership
+    const ownerLeaderId = await this.resolveOwnerLeaderId(
+      actorId,
+      actor.roles,
+      dto.currentGroupId,
+    );
+
+    const person = await this.repository.create({ ...dto, campusId, ownerLeaderId });
 
     // If a pipeline stage was assigned, create initial history entry
     if (person.pipelineStageId) {
@@ -45,8 +93,8 @@ export class PersonsService {
     return person;
   }
 
-  async findAll(query: PersonsQueryDto, campusId: string) {
-    return this.repository.findAll(query, campusId);
+  async findAll(query: PersonsQueryDto, campusId: string, visibleGroupIds?: string[] | null) {
+    return this.repository.findAll(query, campusId, visibleGroupIds);
   }
 
   async update(id: string, dto: UpdatePersonDto) {
@@ -109,6 +157,14 @@ export class PersonsService {
 
     // Update person's current group
     await this.repository.transferToGroup(dto.personId, dto.targetGroupId);
+
+    // ADR-011: Transfer ownership to new group's leader
+    await this.ownershipService.transferOwnership(
+      dto.personId,
+      dto.targetGroupId,
+      actorId,
+      dto.reason ?? undefined,
+    );
 
     // Create new team history entry
     await this.repository.createTeamHistory({

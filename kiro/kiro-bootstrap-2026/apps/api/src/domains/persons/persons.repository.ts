@@ -6,7 +6,7 @@ import { CreatePersonDto, PersonsQueryDto, UpdatePersonDto } from './dto/persons
 export class PersonsRepository {
   constructor(private readonly db: DatabaseService) {}
 
-  async create(data: CreatePersonDto & { campusId: string }) {
+  async create(data: CreatePersonDto & { campusId: string; ownerLeaderId?: string | null }) {
     return this.db.person.create({
       data: {
         firstName: data.firstName,
@@ -19,6 +19,7 @@ export class PersonsRepository {
         avatarUrl: data.avatarUrl,
         pipelineStageId: data.pipelineStageId,
         currentGroupId: data.currentGroupId,
+        ownerLeaderId: data.ownerLeaderId ?? null,
         notes: data.notes,
         campusId: data.campusId,
       },
@@ -39,17 +40,30 @@ export class PersonsRepository {
     });
   }
 
-  async findAll(query: PersonsQueryDto, campusId: string) {
+  async findAll(query: PersonsQueryDto, campusId: string, visibleGroupIds?: string[] | null) {
     const where: any = {
       campusId,
       deletedAt: null,
     };
 
+    // ADR-010: Ministerial Scope filter
+    if (visibleGroupIds) {
+      where.currentGroupId = { in: visibleGroupIds };
+    }
+
     if (query.pipelineStageId) {
       where.pipelineStageId = query.pipelineStageId;
     }
     if (query.currentGroupId) {
-      where.currentGroupId = query.currentGroupId;
+      // If scope is active, only allow filtering to a group within visible scope
+      if (visibleGroupIds) {
+        if (visibleGroupIds.includes(query.currentGroupId)) {
+          where.currentGroupId = query.currentGroupId;
+        }
+        // If not in visible scope, keep the scope filter (ignore invalid group filter)
+      } else {
+        where.currentGroupId = query.currentGroupId;
+      }
     }
     if (query.search) {
       where.OR = [

@@ -13,8 +13,9 @@ export class ReportingService {
 
   // ── Overview KPIs ─────────────────────────────────────────
 
-  async getOverview(campusId?: string) {
-    const cacheKey = `report:overview:${campusId ?? 'all'}`;
+  async getOverview(campusId?: string, visibleGroupIds?: string[] | null) {
+    const scopeKey = visibleGroupIds ? visibleGroupIds.sort().join(',').slice(0, 32) : 'all';
+    const cacheKey = `report:overview:${campusId ?? 'all'}:${scopeKey}`;
 
     return this.cache.getOrSet(cacheKey, async () => {
       const userWhere = {
@@ -22,10 +23,15 @@ export class ReportingService {
         ...(campusId && { campusId }),
       };
 
-      const groupWhere = {
+      const groupWhere: any = {
         deletedAt: null,
         ...(campusId && { campusId }),
       };
+
+      // ADR-010: Scope groups by visible IDs when non-null
+      if (visibleGroupIds) {
+        groupWhere.id = { in: visibleGroupIds };
+      }
 
       const [
         totalUsers,
@@ -40,9 +46,9 @@ export class ReportingService {
         this.db.user.count({ where: { ...userWhere, status: 'ACTIVE' } }),
         this.db.group.count({ where: groupWhere }),
         this.db.group.count({ where: { ...groupWhere, isActive: true } }),
-        this.db.membership.count({ where: campusId ? { group: { campusId } } : {} }),
+        this.db.membership.count({ where: visibleGroupIds ? { groupId: { in: visibleGroupIds } } : (campusId ? { group: { campusId } } : {}) }),
         this.db.membership.count({
-          where: { status: 'ACTIVE', ...(campusId && { group: { campusId } }) },
+          where: { status: 'ACTIVE', ...(visibleGroupIds ? { groupId: { in: visibleGroupIds } } : (campusId ? { group: { campusId } } : {})) },
         }),
         this.db.discipleshipRelationship.count({ where: { status: 'ACTIVE' } }),
       ]);

@@ -32,12 +32,13 @@ const GROUP_DETAIL_SELECT = {
 export class GroupsRepository {
   constructor(private readonly db: DatabaseService) {}
 
-  async findMany(query: GroupsQueryDto) {
+  async findMany(query: GroupsQueryDto, visibleGroupIds?: string[] | null) {
     const { page, pageSize, search, type, campusId, ministryId, parentId, isActive, sortBy, sortOrder } = query;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.GroupWhereInput = {
       deletedAt: null,
+      ...(visibleGroupIds && { id: { in: visibleGroupIds } }),
       ...(type && { type }),
       ...(campusId && { campusId }),
       ...(ministryId && { ministryId }),

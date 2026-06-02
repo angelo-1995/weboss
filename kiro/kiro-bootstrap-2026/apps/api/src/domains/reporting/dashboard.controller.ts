@@ -4,6 +4,7 @@ import { AlertDetectionService } from './alert-detection.service';
 import { ReportDraftsService } from './report-drafts.service';
 import { ReportPeriodService } from './report-period.service';
 import { DatabaseService } from '../../infrastructure/database/database.service';
+import { HierarchyVisibilityService } from '../../common/services/hierarchy-visibility.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -18,6 +19,7 @@ export class DashboardController {
     private readonly drafts: ReportDraftsService,
     private readonly period: ReportPeriodService,
     private readonly db: DatabaseService,
+    private readonly hierarchy: HierarchyVisibilityService,
   ) {}
 
   // ── KPIs ──────────────────────────────────────────────
@@ -25,7 +27,8 @@ export class DashboardController {
   @Get('kpis')
   @Roles('LEADER', 'ADMIN', 'SUPER_ADMIN')
   async getKPIs(@CurrentUser() user: CurrentUserData, @Query('networkId') networkId?: string) {
-    return this.kpis.getKPIs(user.campusId, networkId);
+    const visibleGroupIds = await this.hierarchy.getVisibleGroupIds(user.id, user.roles);
+    return this.kpis.getKPIs(user.campusId, networkId, visibleGroupIds, user.leaderCode);
   }
 
   @Get('attendance-trend')
@@ -35,7 +38,8 @@ export class DashboardController {
     @Query('weeks') weeks?: string,
     @Query('networkId') networkId?: string,
   ) {
-    return this.kpis.getAttendanceTrend(user.campusId, weeks ? parseInt(weeks) : 12, networkId);
+    const visibleGroupIds = await this.hierarchy.getVisibleGroupIds(user.id, user.roles);
+    return this.kpis.getAttendanceTrend(user.campusId, weeks ? parseInt(weeks) : 12, networkId, visibleGroupIds, user.leaderCode);
   }
 
   // ── Alerts ────────────────────────────────────────────
@@ -44,11 +48,20 @@ export class DashboardController {
   @Roles('LEADER', 'ADMIN', 'SUPER_ADMIN')
   async getAlerts(@CurrentUser() user: CurrentUserData, @Query('acknowledged') acknowledged?: string): Promise<any> {
     const isAcknowledged = acknowledged === 'true';
+    const visibleGroupIds = await this.hierarchy.getVisibleGroupIds(user.id, user.roles);
+
+    const where: any = {
+      campusId: user.campusId,
+      acknowledged: isAcknowledged,
+    };
+
+    // ADR-010: Scope alerts by visible groups
+    if (visibleGroupIds) {
+      where.targetGroupId = { in: visibleGroupIds };
+    }
+
     return this.db.operationalAlert.findMany({
-      where: {
-        campusId: user.campusId,
-        acknowledged: isAcknowledged,
-      },
+      where,
       include: {
         targetGroup: { select: { id: true, name: true, code: true } },
       },

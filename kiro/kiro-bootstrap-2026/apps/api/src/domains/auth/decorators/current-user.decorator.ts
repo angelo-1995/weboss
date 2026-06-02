@@ -7,6 +7,8 @@ export interface CurrentUserData {
   status: string;
   sessionId: string;
   campusId: string;
+  leaderCode: string | null;
+  networkId: string | null;
 }
 
 export const CurrentUser = createParamDecorator(

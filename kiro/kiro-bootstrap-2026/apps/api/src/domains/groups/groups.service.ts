@@ -18,8 +18,8 @@ export class GroupsService {
     private readonly events: EventEmitter2,
   ) {}
 
-  async findMany(query: GroupsQueryDto): Promise<PaginatedResponse<unknown>> {
-    const { data, total } = await this.repo.findMany(query);
+  async findMany(query: GroupsQueryDto, visibleGroupIds?: string[] | null): Promise<PaginatedResponse<unknown>> {
+    const { data, total } = await this.repo.findMany(query, visibleGroupIds);
 
     // Map _count.members to memberCount and include leader info
     const enriched = await Promise.all(

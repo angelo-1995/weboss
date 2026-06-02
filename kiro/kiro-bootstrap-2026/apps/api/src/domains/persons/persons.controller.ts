@@ -16,24 +16,29 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.decorator';
+import { HierarchyVisibilityService } from '../../common/services/hierarchy-visibility.service';
 
 @Controller('persons')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PersonsController {
-  constructor(private readonly service: PersonsService) {}
+  constructor(
+    private readonly service: PersonsService,
+    private readonly hierarchy: HierarchyVisibilityService,
+  ) {}
 
   @Post()
   @Roles('LEADER', 'ADMIN', 'SUPER_ADMIN')
   async create(@Body() body: unknown, @CurrentUser() user: CurrentUserData) {
     const dto: CreatePersonDto = createPersonSchema.parse(body);
-    return this.service.create(dto, user.campusId, user.id);
+    return this.service.create(dto, user);
   }
 
   @Get()
   @Roles('LEADER', 'ADMIN', 'SUPER_ADMIN')
   async findAll(@Query() query: unknown, @CurrentUser() user: CurrentUserData) {
     const dto: PersonsQueryDto = personsQuerySchema.parse(query);
-    return this.service.findAll(dto, user.campusId);
+    const visibleGroupIds = await this.hierarchy.getVisibleGroupIds(user.id, user.roles);
+    return this.service.findAll(dto, user.campusId, visibleGroupIds);
   }
 
   @Get(':id')

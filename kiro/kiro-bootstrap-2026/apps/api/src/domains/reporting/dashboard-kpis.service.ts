@@ -13,10 +13,10 @@ export class DashboardKpisService {
 
   /**
    * Get pastoral KPIs for the executive dashboard.
-   * Scoped by campus and optional network filter.
+   * Scoped by campus, optional network filter, and ministerial scope (ADR-010).
    */
-  async getKPIs(campusId: string, networkId?: string) {
-    const key = `dashboard:kpis:${campusId}:${networkId ?? 'all'}`;
+  async getKPIs(campusId: string, networkId?: string, visibleGroupIds?: string[] | null, leaderCode?: string | null) {
+    const key = `dashboard:kpis:${campusId}:${networkId ?? 'all'}:${leaderCode ?? 'global'}`;
 
     return this.cache.getOrSet(key, async () => {
       const now = new Date();
@@ -26,16 +26,23 @@ export class DashboardKpisService {
       const fourWeeksAgo = new Date(thisWeekStart);
       fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
-      // Build group filter
-      const groupFilter: any = { isActive: true, deletedAt: null, type: 'CELL' };
-      if (campusId) groupFilter.campusId = campusId;
-      if (networkId) groupFilter.networkId = networkId;
+      let groupIds: string[];
 
-      const groups = await this.db.group.findMany({
-        where: groupFilter,
-        select: { id: true },
-      });
-      const groupIds = groups.map((g) => g.id);
+      // ADR-010: If visibleGroupIds is provided, use them directly (scoped user)
+      if (visibleGroupIds) {
+        groupIds = visibleGroupIds;
+      } else {
+        // Admin or no scope: query all groups by campus/network
+        const groupFilter: any = { isActive: true, deletedAt: null, type: 'CELL' };
+        if (campusId) groupFilter.campusId = campusId;
+        if (networkId) groupFilter.networkId = networkId;
+
+        const groups = await this.db.group.findMany({
+          where: groupFilter,
+          select: { id: true },
+        });
+        groupIds = groups.map((g) => g.id);
+      }
 
       if (groupIds.length === 0) {
         return this.emptyKPIs(now);
@@ -126,24 +133,32 @@ export class DashboardKpisService {
 
   /**
    * Get attendance trend for the last N weeks.
+   * ADR-010: Scoped by visibleGroupIds when non-null.
    */
-  async getAttendanceTrend(campusId: string, weeks = 12, networkId?: string) {
-    const key = `dashboard:trend:${campusId}:${networkId ?? 'all'}:${weeks}`;
+  async getAttendanceTrend(campusId: string, weeks = 12, networkId?: string, visibleGroupIds?: string[] | null, leaderCode?: string | null) {
+    const key = `dashboard:trend:${campusId}:${networkId ?? 'all'}:${weeks}:${leaderCode ?? 'global'}`;
 
     return this.cache.getOrSet(key, async () => {
       const now = new Date();
       const startDate = new Date(now);
       startDate.setDate(startDate.getDate() - weeks * 7);
 
-      const groupFilter: any = { isActive: true, deletedAt: null, type: 'CELL' };
-      if (campusId) groupFilter.campusId = campusId;
-      if (networkId) groupFilter.networkId = networkId;
+      let groupIds: string[];
 
-      const groups = await this.db.group.findMany({
-        where: groupFilter,
-        select: { id: true },
-      });
-      const groupIds = groups.map((g) => g.id);
+      // ADR-010: If visibleGroupIds is provided, use them directly (scoped user)
+      if (visibleGroupIds) {
+        groupIds = visibleGroupIds;
+      } else {
+        const groupFilter: any = { isActive: true, deletedAt: null, type: 'CELL' };
+        if (campusId) groupFilter.campusId = campusId;
+        if (networkId) groupFilter.networkId = networkId;
+
+        const groups = await this.db.group.findMany({
+          where: groupFilter,
+          select: { id: true },
+        });
+        groupIds = groups.map((g) => g.id);
+      }
 
       const reports = await this.db.cellReport.findMany({
         where: {

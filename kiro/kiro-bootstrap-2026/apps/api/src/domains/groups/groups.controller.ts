@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, type CurrentUserData } from '../auth/decorators/current-user.decorator';
+import { HierarchyVisibilityService } from '../../common/services/hierarchy-visibility.service';
 import {
   CreateGroupSchema,
   UpdateGroupSchema,
@@ -28,12 +29,16 @@ import {
 @Controller('groups')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class GroupsController {
-  constructor(private readonly groupsService: GroupsService) {}
+  constructor(
+    private readonly groupsService: GroupsService,
+    private readonly hierarchy: HierarchyVisibilityService,
+  ) {}
 
   @Get()
-  findMany(@Query() query: Record<string, string>) {
+  async findMany(@Query() query: Record<string, string>, @CurrentUser() user: CurrentUserData) {
     const parsed = GroupsQuerySchema.parse(query);
-    return this.groupsService.findMany(parsed);
+    const visibleGroupIds = await this.hierarchy.getVisibleGroupIds(user.id, user.roles);
+    return this.groupsService.findMany(parsed, visibleGroupIds);
   }
 
   @Get(':id')
