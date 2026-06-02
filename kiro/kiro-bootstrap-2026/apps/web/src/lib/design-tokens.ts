@@ -1,8 +1,9 @@
 /**
- * WebOSS Design Tokens
+ * J-PDVE Conexiones Design Tokens
  *
- * Central source of truth for design decisions.
- * These complement the CSS variables in globals.css.
+ * Brand: Modern, Cinematic, Premium, Youth-Oriented
+ * Colors: Blue #1565FF, Gold #FFB400, Black #050505, White #F5F7FA
+ * Typography: Anton (headings), Montserrat (body)
  */
 
 export const tokens = {
@@ -93,11 +94,27 @@ export const statusColors = {
     'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border-gray-200',
 } as const;
 
-// Spiritual/warm accent gradients
+// Spiritual/warm accent gradients — J-PDVE Conexiones
 export const gradients = {
-  primary: 'bg-gradient-to-r from-primary/80 to-primary',
+  primary: 'bg-gradient-to-r from-[#1565FF] to-[#1E88E5]',
+  gold: 'bg-gradient-to-r from-[#FFB400] to-[#FFC940]',
   warm: 'bg-gradient-to-r from-amber-500/10 to-orange-500/10',
-  spiritual:
-    'bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5',
+  spiritual: 'bg-gradient-to-br from-[#1565FF]/5 via-purple-500/5 to-[#FFB400]/5',
   card: 'bg-gradient-to-b from-card to-card/80',
+  hero: 'bg-gradient-to-br from-[#050505] via-[#0d1117] to-[#1565FF]/10',
+} as const;
+
+// J-PDVE Brand constants
+export const brand = {
+  name: 'J-PDVE Conexiones',
+  colors: {
+    blue: '#1565FF',
+    gold: '#FFB400',
+    black: '#050505',
+    white: '#F5F7FA',
+  },
+  fonts: {
+    heading: "'Anton', system-ui, sans-serif",
+    body: "'Montserrat', system-ui, -apple-system, sans-serif",
+  },
 } as const;
