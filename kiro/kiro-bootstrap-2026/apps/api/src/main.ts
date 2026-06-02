@@ -52,7 +52,7 @@ async function bootstrap() {
     logger.log('Swagger docs available at /api/docs');
   }
 
-  const port = process.env['APP_PORT'] ?? 4000;
+  const port = process.env['PORT'] || process.env['APP_PORT'] || 4000;
   await app.listen(port, '0.0.0.0');
   logger.log(`API running on port ${port}`);
 
@@ -60,4 +60,7 @@ async function bootstrap() {
   await mkdir(join(process.cwd(), 'uploads', 'sermons'), { recursive: true });
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('❌ Bootstrap failed:', err);
+  process.exit(1);
+});
