@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "corepack enable && pnpm install --force && npx prisma generate --schema=packages/database/prisma/schema.prisma && pnpm --filter @community-os/api build"
+buildCommand = "corepack enable && pnpm install --force && pnpm --filter @community-os/database db:generate && pnpm --filter @community-os/api build"
 
 [deploy]
 startCommand = "node apps/api/dist/apps/api/src/main.js"
