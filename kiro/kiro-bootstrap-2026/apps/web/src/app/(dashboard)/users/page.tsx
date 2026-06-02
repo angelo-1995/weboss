@@ -205,7 +205,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Usuarios" description="Gestión de personas en la organización">
+      <PageHeader title="Acceso al Sistema" description="Cuentas con acceso a J-PDVE Conexiones. Para ver todos los miembros del ministerio, visita Personas.">
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setBulkNetworkOpen(true)}>
             Asignar Red
