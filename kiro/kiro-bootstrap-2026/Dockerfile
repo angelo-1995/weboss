@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -21,8 +21,8 @@ RUN pnpm install --frozen-lockfile
 COPY packages/ packages/
 COPY apps/api/ apps/api/
 
-# Generate Prisma client
-RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
+# Generate Prisma client using pnpm exec
+RUN pnpm exec prisma generate --schema=packages/database/prisma/schema.prisma
 
 # Build ONLY the API (not web)
 RUN pnpm --filter @community-os/api build
