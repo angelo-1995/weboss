@@ -17,7 +17,7 @@ RUN cd packages/database && npx prisma generate
 # Build API
 RUN pnpm --filter @community-os/api build
 
-# Start with custom resolver that handles .ts -> .js resolution
+# Start - dist structure is now dist/main.js (rootDir = ./src)
 ENV PORT=4000
 EXPOSE 4000
-CMD ["node", "-r", "./apps/api/register-ts-paths.js", "apps/api/dist/apps/api/src/main.js"]
+CMD ["node", "apps/api/dist/main.js"]
