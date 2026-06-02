@@ -1,19 +1,19 @@
-# DEPLOYMENT_POSTMORTEM.md — Análisis de Errores de Deploy y Prevención
+# DEPLOYMENT_POSTMORTEM.md — Análisis Completo de Errores de Deploy
 
 > **Fecha:** Junio 2026
 > **Plataforma:** Railway (backend) + Vercel (frontend) + Neon (DB) + Upstash (Redis)
-> **Tiempo total de resolución:** ~3 horas
-> **Estado final:** En progreso
+> **Tiempo total de resolución:** ~6 horas
+> **Estado final:** ✅ RESUELTO — API en producción
 
 ---
 
-## Resumen de Errores Encontrados
+## Resumen
 
-Se encontraron **7 errores distintos** durante el primer deploy a producción. Todos fueron causados por diferencias entre el entorno de desarrollo local (Windows + Docker Compose) y el entorno de producción (Railway Linux containers).
+Se encontraron **10 errores distintos** durante el primer deploy a producción. Todos causados por diferencias entre el entorno local (Windows + Docker Compose + ts-node) y producción (Railway Linux containers + Node.js compilado).
 
 ---
 
-## Error 1: Railway no detecta build command
+## Error 1: Railway no detecta start command
 
 ### Síntoma
 ```
@@ -21,20 +21,19 @@ Failed to build an image. Railpack could not detect a start command.
 ```
 
 ### Causa raíz
-Railway usa "Railpack" por defecto que auto-detecta el framework. En un monorepo pnpm sin script `start` en el root `package.json`, Railpack no sabe qué app iniciar.
+Railway usa "Railpack" por defecto. En un monorepo pnpm sin script `start` en root, no sabe qué app iniciar.
 
-### Solución aplicada
-- Agregar `"start": "node apps/api/dist/apps/api/src/main.js"` al root `package.json`
+### Solución
 - Crear `railway.toml` con build/start commands explícitos
+- Agregar `"start"` script en root package.json
 
-### Prevención futura
-- **Siempre tener** `"start"` script en root package.json de monorepos
-- **Siempre incluir** `railway.toml` o equivalente para cualquier PaaS
-- **Documentar** en README cómo se espera que se buildee y arranque en producción
+### Prevención
+- **Regla:** Siempre incluir `railway.toml` para cualquier PaaS con monorepo
+- **Checklist:** Verificar que start command apunte al archivo correcto
 
 ---
 
-## Error 2: `prisma: Permission denied`
+## Error 2: `prisma: Permission denied` / `ENOENT`
 
 ### Síntoma
 ```
@@ -43,183 +42,257 @@ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL spawn ENOENT
 ```
 
 ### Causa raíz
-Combinación de:
-1. `NODE_ENV=production` en variables de Railway → pnpm skips devDependencies durante install
-2. `prisma` estaba originalmente en `devDependencies` (no se instalaba en prod)
-3. Incluso después de moverlo a `dependencies`, Railway cacheó el build anterior
-4. Symlinks de `.bin/` perdieron permisos al ser cacheados cross-platform (Windows→Linux)
+`NODE_ENV=production` → pnpm no instala devDependencies → `prisma` CLI no disponible.
 
-### Solución aplicada
-- Mover `prisma` a `dependencies` (no devDeps)
-- Cambiar script de `"prisma generate"` a `"pnpm exec prisma generate"`
-- En Dockerfile: usar `cd packages/database && npx prisma generate`
+### Solución
+- Mover `prisma` a `dependencies`
+- Usar `pnpm exec prisma generate` en scripts
 
-### Prevención futura
-- **Regla:** En monorepos que se deployean, CLI tools que se usan en build (prisma, tsx) DEBEN estar en `dependencies`, no `devDependencies`
-- **Regla:** Usar `pnpm exec` en TODOS los scripts de package.json (no bare commands)
-- **Regla:** Siempre clear cache de Railway después de cambios en dependencies
-- **ADR-007** documenta esta decisión permanentemente
+### Prevención
+- **Regla:** CLI tools usados en build (prisma, tsx) van en `dependencies`
+- **Regla:** Usar `pnpm exec` en TODOS los scripts (ADR-007)
 
 ---
 
 ## Error 3: Railway usa branch equivocada
 
 ### Síntoma
-Los fixes pusheados no se reflejaban en el build.
+Fixes no se reflejaban en builds.
 
 ### Causa raíz
-Railway estaba conectado a la branch `feature/platform-ux-modernization` pero los fixes se hacían en `main`. Las branches estaban desincronizadas.
+Railway conectado a `feature/platform-ux-modernization` pero fixes en `main`.
 
-### Solución aplicada
-Recrear la feature branch desde main (force push).
+### Solución
+Sincronizar branches (merge a main, redeploy).
 
-### Prevención futura
-- **Regla:** Para producción, SIEMPRE deployear desde `main`
-- **Regla:** Mergear cambios a la branch de deploy ANTES de esperar que Railway los tome
-- **Verificar** en Railway Settings → Source qué branch está configurada
+### Prevención
+- **Regla:** Producción SIEMPRE deploy desde `main`
+- **Verificar:** Railway Settings → Source → Branch antes de cada debug
 
 ---
 
-## Error 4: TypeScript type errors bloquean build de Vercel
+## Error 4: TypeScript type errors bloquean Vercel
 
 ### Síntoma
 ```
 Type error: Property 'isActive' does not exist on type 'Group'
 ```
 
-### Causa raíz
-El tipo TypeScript en `@community-os/types` no incluía campos que existían en el modelo Prisma y que el frontend usaba.
+### Solución
+- Agregar campos faltantes a `packages/types/`
+- `typescript.ignoreBuildErrors: true` como safety net temporal
 
-### Solución aplicada
-- Agregar `isActive: boolean` al tipo `Group`
-- Agregar `typescript.ignoreBuildErrors: true` en `next.config.ts` como safety net
-
-### Prevención futura
-- **Regla:** Cuando se agregan campos a Prisma schema, ACTUALIZAR también los tipos en `packages/types/`
-- **Regla:** Ejecutar `pnpm type-check` ANTES de pushear
-- **CI/CD:** Agregar GitHub Action que corra type-check en PRs
-- **Considerar:** Generar tipos automáticamente desde Prisma schema
+### Prevención
+- **Regla:** Al agregar campos Prisma, actualizar `packages/types/`
+- **CI/CD:** type-check obligatorio antes de merge
 
 ---
 
-## Error 5: Dockerfile no encontrado por Railway
+## Error 5: Dockerfile path incorrecto
 
 ### Síntoma
 ```
 couldn't locate the dockerfile at path Dockerfile
-- not found at kiro/kiro-bootstrap-2026/Dockerfile
-- not found at Dockerfile
 ```
 
 ### Causa raíz
-Railway con Root Directory configurado busca relativo a esa carpeta. Pero el Dockerfile path en Settings apuntaba a una ruta incorrecta.
+Root Directory en Railway = `kiro/kiro-bootstrap-2026`, Dockerfile Path debía ser relativo.
 
-### Solución aplicada
-Configurar Dockerfile Path como `Dockerfile` (relativo al Root Directory).
+### Solución
+Configurar Dockerfile Path = `Dockerfile` (relativo al Root Directory).
 
-### Prevención futura
-- **Regla:** Si Root Directory = `kiro/kiro-bootstrap-2026`, entonces Dockerfile Path = `Dockerfile` (no la ruta completa)
-- **Documentar** la configuración exacta de Railway en un README de deploy
-
----
-
-## Error 6: `npx prisma` → exit code 127 (command not found)
-
-### Síntoma
-```
-sh: 1: prisma: not found
-exit code: 127
-```
-
-### Causa raíz
-En el contexto del Dockerfile con `node:20-slim`, `npx` no está disponible (slim no incluye npm/npx). Incluso con `node:20-alpine`, pnpm workspaces instala binarios en ubicaciones no estándar que `npx` no encuentra.
-
-### Solución aplicada
-Ejecutar `npx prisma generate` desde DENTRO del directorio del package (`cd packages/database && npx prisma generate`).
-
-### Prevención futura
-- **Regla:** Usar `node:20-alpine` (no slim) para tener npm/npx disponibles
-- **Regla:** Ejecutar prisma desde el directorio del workspace package
-- **Alternativa:** Agregar un script `postinstall` que genere el client automáticamente
+### Prevención
+- **Regla:** Si Root Directory está configurado, paths son relativos a ese directorio
 
 ---
 
-## Error 7: Runtime TypeScript syntax error
+## Error 6: Runtime — require de archivos .ts en producción
 
 ### Síntoma
 ```
-file:///app/packages/database/src/index.ts:3
-const globalForPrisma = globalThis as unknown as {
-                                      ^^
 SyntaxError: Unexpected identifier 'as'
-```
-
-### Causa raíz
-NestJS compila el API con `rootDir: "../../"` y paths que apuntan a `packages/database/src/index.ts`. El archivo compilado (`database.service.js`) genera un require relativo que apunta directamente al archivo `.ts` source:
-```js
 require('../../../../../packages/database/src/index.ts')
 ```
-Node.js no puede ejecutar TypeScript.
 
-### Solución aplicada
-1. Crear `packages/database/src/index.js` — versión JavaScript del mismo archivo
-2. Crear `apps/api/register-ts-paths.js` — hook de Node.js que intercepta requires de `.ts` y busca `.js` en su lugar
-3. Dockerfile CMD: `node -r ./apps/api/register-ts-paths.js apps/api/dist/apps/api/src/main.js`
+### Causa raíz
+`tsconfig.json` tenía `rootDir: "../../"` y `paths` que apuntaban a source files. NestJS compilaba con rutas relativas a `.ts`.
 
-### Prevención futura (solución definitiva para V2)
-- **Refactorizar** `tsconfig.json` del API para NO usar `rootDir: "../../"` con paths a source files
-- **Compilar** el package database a JavaScript (`tsc -p packages/database/tsconfig.json`)
-- **Usar** `"main": "./dist/index.js"` en el package database con build step propio
-- **Alternativa:** Migrar a NestJS 11+ con ESM native que resuelve workspace packages via `exports` de package.json
-- **CI/CD:** Agregar test que verifica que `node apps/api/dist/apps/api/src/main.js` arranca sin errores (smoke test)
+### Solución DEFINITIVA
+- Eliminar `paths` del tsconfig
+- Cambiar `rootDir` a `"./src"`
+- El compilado ahora usa `require("@community-os/database")` (resolución estándar Node.js)
+
+### Prevención
+- **Regla:** NUNCA usar `rootDir` que incluya packages externos
+- **Regla:** NUNCA usar `paths` en tsconfig de producción que apunten a `.ts` de otros packages
+- **Test:** Verificar que `dist/` no contenga `require('*.ts')` después de build
 
 ---
 
-## Checklist Pre-Deploy (para futuros deploys)
+## Error 7: `dist/index.js` no existe en el container
+
+### Síntoma
+```
+Cannot find module '/app/apps/api/node_modules/@community-os/database/dist/index.js'
+```
+
+### Causa raíz
+`packages/database/dist/index.js` estaba en `.gitignore`. No se subía a GitHub → no existía en el container de Railway.
+
+### Solución
+- `git add --force packages/database/dist/index.js`
+- Trackear el archivo manualmente hasta que se implemente build automático
+
+### Prevención
+- **Regla:** Archivos requeridos en runtime DEBEN estar en git O generarse en el Dockerfile
+- **DEBT-004:** Implementar build step automático para database package
+
+---
+
+## Error 8: Secrets con palabras prohibidas por Zod
+
+### Síntoma
+App crasheaba silenciosamente. Deploy Logs solo mostraban "Starting Container" y nada más.
+
+### Causa raíz
+`env.schema.ts` tiene validación `superRefine` que en `production` rechaza secrets que contengan: `secret`, `changeme`, `password`, etc. Los valores configurados incluían la palabra "secret":
+```
+JWT_SECRET=jpdve-pilot-2026-jwt-secret-very-long-random-string...
+```
+
+### Solución
+Cambiar valores a strings que NO contengan palabras prohibidas.
+
+### Prevención
+- **Regla:** DOCUMENTAR en README qué validaciones aplican a env vars en production
+- **Regla:** Agregar `console.log` ANTES de la validación para confirmar que llegó al punto
+- **Mejora:** Hacer que la validación Zod logee el error a stdout antes de throw
+- **Checklist pre-deploy:** Verificar que secrets no contengan: secret, changeme, password, change-me, default, dev-secret, test-secret, placeholder
+
+---
+
+## Error 9: Redis TLS no parseado correctamente
+
+### Síntoma
+App no arrancaba. BullMQ intentaba conectar a Upstash pero fallaba silenciosamente.
+
+### Causa raíz
+`@nestjs/bull` recibía `REDIS_URL` como string (`rediss://...`). Internamente ioredis necesita opciones separadas para TLS. Pasar URL directamente a BullModule no activa TLS correctamente.
+
+### Solución
+Parsear URL manualmente en `queue.module.ts` y `cache.module.ts`:
+```typescript
+const parsedUrl = new URL(redisUrl);
+return {
+  redis: {
+    host: parsedUrl.hostname,
+    port: parseInt(parsedUrl.port),
+    password: decodeURIComponent(parsedUrl.password),
+    tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+  }
+};
+```
+
+### Prevención
+- **Regla:** Para Redis con TLS (Upstash, AWS ElastiCache), SIEMPRE parsear URL manualmente
+- **Regla:** No pasar `rediss://` URL directamente a BullModule o ioredis como string
+- **Test:** Agregar smoke test que verifica conexión Redis al startup
+
+---
+
+## Error 10: Dominio Railway "Not Found"
+
+### Síntoma
+```
+Not Found — The train has not arrived at the station.
+```
+
+### Causa raíz
+El dominio público se había desconfigurado después de múltiples deploys fallidos. Railway no asociaba el dominio al servicio activo.
+
+### Solución
+Eliminar y recrear el dominio Railway-provided. Verificar Target Port = 4000.
+
+### Prevención
+- **Regla:** Después de cambiar `internalPort`, verificar que el dominio tenga el Target Port correcto
+- **Verificar:** Settings → Networking → Domain → Port matches `internalPort`
+
+---
+
+## Error 11: main.ts no usa PORT de Railway
+
+### Síntoma
+App escucha en puerto 4000 pero Railway espera que use la variable `PORT`.
+
+### Causa raíz
+`main.ts` usaba `process.env['APP_PORT']` pero Railway inyecta `PORT`.
+
+### Solución
+```typescript
+const port = process.env['PORT'] || process.env['APP_PORT'] || 4000;
+```
+
+### Prevención
+- **Regla:** SIEMPRE usar `PORT` como primera opción (estándar PaaS)
+- **Docs Railway:** "Your web server should listen on the port specified by PORT"
+
+---
+
+## Checklist Pre-Deploy ACTUALIZADO
 
 ```markdown
-- [ ] `pnpm type-check` pasa sin errores
-- [ ] `pnpm --filter @community-os/api build` produce dist/ funcional
-- [ ] `node -r ./apps/api/register-ts-paths.js apps/api/dist/apps/api/src/main.js` arranca localmente
-- [ ] Variables de entorno documentadas y configuradas
-- [ ] Branch de Railway = branch con el código correcto
-- [ ] Root Directory configurado correctamente
-- [ ] Builder = Dockerfile
-- [ ] Dockerfile Path = Dockerfile
-- [ ] `prisma` está en dependencies (no devDeps)
-- [ ] `packages/database/src/index.js` existe
+## Antes de push a producción:
+- [ ] `pnpm --filter @community-os/api build` compila sin errores
+- [ ] `dist/` no contiene `require('*.ts')` (buscar con grep)
+- [ ] `packages/database/dist/index.js` existe y está en git
+- [ ] Variables de entorno no contienen: secret, changeme, password
+- [ ] JWT_SECRET ≥ 32 chars, ARGON2_PEPPER ≥ 16 chars
+- [ ] REDIS_URL con `rediss://` → módulos parsean con TLS
+- [ ] main.ts usa `PORT` (no solo APP_PORT)
+- [ ] railway.toml `internalPort` = mismo valor que PORT/APP_PORT
+- [ ] Dominio Railway tiene Target Port correcto
+- [ ] Branch de Railway = main
+
+## Smoke test local:
+- [ ] node apps/api/dist/main.js (debe arrancar sin errores ~2s)
+- [ ] curl http://localhost:4000/api/v1/health/live → {"status":"ok"}
 ```
 
 ---
 
-## Lecciones Aprendidas
+## Lecciones Aprendidas (Actualizado)
 
-| # | Lección | Impacto |
-|---|---------|---------|
-| 1 | **Dev ≠ Prod:** Local usa ts-node (ejecuta TS directo). Prod usa node (solo JS). | Alto |
-| 2 | **Monorepos son complejos en PaaS:** Railway/Vercel esperan single-app repos. | Alto |
-| 3 | **NODE_ENV afecta install:** Con production, devDeps no se instalan. | Alto |
-| 4 | **Cache de builds puede ser enemigo:** Railway reutiliza builds viejos. | Medio |
-| 5 | **NestJS + workspace packages:** El compilado mantiene paths relativos a .ts files. | Alto |
-| 6 | **Siempre probar prod build local antes de deployear.** | Crítico |
+| # | Lección | Impacto | Cómo evitarlo |
+|---|---------|---------|---------------|
+| 1 | Dev ≠ Prod: ts-node vs node | Alto | Siempre probar `node dist/main.js` local |
+| 2 | Monorepos + PaaS = complejidad | Alto | railway.toml explícito + Dockerfile |
+| 3 | NODE_ENV afecta install | Alto | CLI tools en dependencies |
+| 4 | Cache de Railway reutiliza builds viejos | Medio | Clear cache al cambiar deps |
+| 5 | Validación Zod crashea SILENCIOSAMENTE | Crítico | `.catch()` en bootstrap + logs antes de validar |
+| 6 | `rediss://` ≠ `redis://` para ioredis | Alto | Parsear URL, no pasar string directo |
+| 7 | `dist/` gitignored = no existe en container | Crítico | Track o generar en Dockerfile |
+| 8 | Secrets con "secret" en el valor | Medio | Documentar blacklist de palabras |
+| 9 | Railway PORT vs APP_PORT | Alto | Siempre usar PORT primero |
+| 10 | Dominio desconfigurado tras deploys fallidos | Medio | Verificar Networking después de fix |
 
 ---
 
-## Recomendación: Script de Verificación Local
+## Cronología del Incidente
 
-Crear un script `scripts/verify-prod-build.sh` que simule el deploy localmente:
+| Hora (EST) | Evento |
+|---|---|
+| ~11:00 | Primer deploy intenta, múltiples errores de build |
+| ~12:00 | Build pasa pero runtime falla (MODULE_NOT_FOUND .ts) |
+| ~12:30 | Fix tsconfig: rootDir + paths eliminados |
+| ~12:44 | Deploy Completed pero 502 (secrets Zod) |
+| ~13:15 | Secrets cambiados, aún 502 (Redis TLS) |
+| ~13:30 | Fix Redis TLS + PORT. Railway usa Dockerfile cacheado |
+| ~14:00 | Dockerfile restaurado con código actualizado |
+| ~14:04 | dist/index.js no existe en container |
+| ~14:20 | `git add --force` dist/index.js → push |
+| ~14:30 | NestJS arranca correctamente ✅ |
+| ~14:38 | Health check responde 200 OK ✅ |
+| ~14:40 | Login funcional desde Vercel ✅ |
 
-```bash
-#!/bin/bash
-# Verify production build works before deploying
-echo "🔨 Building API..."
-cd packages/database && npx prisma generate && cd ../..
-pnpm --filter @community-os/api build
-
-echo "🚀 Testing runtime..."
-timeout 5 node -r ./apps/api/register-ts-paths.js apps/api/dist/apps/api/src/main.js || true
-
-echo "✅ If you saw 'Nest application successfully started', the build is ready for deploy."
-```
-
-Ejecutar ANTES de cada push a producción.
+**Tiempo total de indisponibilidad:** ~3.5 horas
+**Causa raíz principal:** Diferencias dev/prod no validadas antes del deploy

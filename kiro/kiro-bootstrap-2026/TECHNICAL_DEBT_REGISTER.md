@@ -122,13 +122,68 @@ Los JWT secrets y ARGON2_PEPPER fueron generados manualmente con strings predeci
 
 ---
 
+## DEBT-007: Bootstrap sin error logging
+
+**Prioridad:** MEDIUM
+**Clasificación:** Observabilidad
+**Creado:** Junio 2026
+**Estado:** ✅ RESUELTO
+
+### Problema
+NestJS crasheaba silenciosamente si ConfigModule.forRoot fallaba (validación Zod). Railway Deploy Logs solo mostraban "Starting Container" sin error.
+
+### Solución Aplicada
+```typescript
+bootstrap().catch((err) => {
+  console.error('❌ Bootstrap failed:', err);
+  process.exit(1);
+});
+```
+
+---
+
+## DEBT-008: Redis TLS parsing manual
+
+**Prioridad:** LOW
+**Clasificación:** Arquitectura
+**Creado:** Junio 2026
+**Estado:** ✅ RESUELTO
+
+### Problema
+`@nestjs/bull` y `ioredis` no parsean `rediss://` (TLS) correctamente cuando se pasa como string URL.
+
+### Solución Aplicada
+Parseo manual de URL en `queue.module.ts` y `cache.module.ts` con `new URL()` y `tls: {}`.
+
+---
+
+## DEBT-009: dist/index.js trackeado manualmente en git
+
+**Prioridad:** HIGH
+**Clasificación:** Arquitectura
+**Creado:** Junio 2026
+
+### Problema
+`packages/database/dist/index.js` fue forzado a git con `git add --force`. Si `src/index.ts` cambia, hay que actualizar `dist/index.js` manualmente.
+
+### Solución Definitiva
+- [ ] Agregar build step: `"build": "tsc -p tsconfig.build.json"` al database package
+- [ ] Agregar a turbo.json pipeline
+- [ ] Dockerfile: `RUN pnpm --filter @community-os/database build`
+- [ ] Entonces: remover `dist/index.js` de git y generarlo en CI
+
+---
+
 ## Resumen
 
-| ID | Descripción | Prioridad | Fase |
-|----|-------------|-----------|------|
-| DEBT-001 | Database package workarounds | HIGH | V2 |
-| DEBT-002 | ignoreBuildErrors en Next.js | MEDIUM | V2 |
-| DEBT-003 | Prisma en dependencies | LOW | V2 |
-| DEBT-004 | Manual dist/index.js | HIGH | V2 |
-| DEBT-005 | CORS wildcard | MEDIUM | Post-piloto |
-| DEBT-006 | Secrets predecibles | MEDIUM | Post-piloto |
+| ID | Descripción | Prioridad | Fase | Estado |
+|----|-------------|-----------|------|--------|
+| DEBT-001 | Database package workarounds | HIGH | V2 | ✅ Parcial |
+| DEBT-002 | ignoreBuildErrors en Next.js | MEDIUM | V2 | Pendiente |
+| DEBT-003 | Prisma en dependencies | LOW | V2 | Pendiente |
+| DEBT-004 | Manual dist/index.js | HIGH | V2 | → DEBT-009 |
+| DEBT-005 | CORS wildcard | MEDIUM | Post-piloto | Pendiente |
+| DEBT-006 | Secrets predecibles | MEDIUM | Post-piloto | Pendiente |
+| DEBT-007 | Bootstrap sin error logging | MEDIUM | — | ✅ Resuelto |
+| DEBT-008 | Redis TLS parsing | LOW | — | ✅ Resuelto |
+| DEBT-009 | dist/index.js en git manualmente | HIGH | V2 | Pendiente |
