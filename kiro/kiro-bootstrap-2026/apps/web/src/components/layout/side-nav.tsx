@@ -153,12 +153,15 @@ export function SideNavContent() {
 export function SideNav() {
   return (
     <aside className="hidden md:flex w-[var(--sidebar-width)] shrink-0 border-r border-border/50 bg-card flex-col">
-      {/* Logo */}
+      {/* Logo — J-PDVE Conexiones */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border/50">
-        <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground text-xs font-bold">C</span>
+        <div className="h-7 w-7 rounded-lg bg-[#1565FF] flex items-center justify-center">
+          <span className="text-white text-[10px] font-bold tracking-tight">JP</span>
         </div>
-        <span className="font-semibold text-sm tracking-tight">Community OS</span>
+        <div className="flex flex-col">
+          <span className="font-heading text-sm tracking-tight leading-none">J-PDVE</span>
+          <span className="text-[10px] text-muted-foreground leading-none mt-0.5">Conexiones</span>
+        </div>
       </div>
 
       <SideNavContent />
