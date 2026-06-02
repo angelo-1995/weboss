@@ -4,33 +4,53 @@ import { LoginForm } from '@/features/auth/components/login-form';
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
-      {/* Left: Branding panel (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary/5 via-background to-primary/10 items-center justify-center p-12">
-        <div className="max-w-md space-y-6">
+      {/* Left: J-PDVE Branding panel (hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#050505] via-[#0d1117] to-[#1565FF]/20 items-center justify-center p-12 overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute top-1/4 -left-20 w-72 h-72 bg-[#1565FF]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-10 w-48 h-48 bg-[#FFB400]/10 rounded-full blur-3xl" />
+
+        <div className="relative max-w-md space-y-8 text-white">
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-lg font-bold">C</span>
+            <div className="h-12 w-12 rounded-xl bg-[#1565FF] flex items-center justify-center shadow-lg shadow-[#1565FF]/30">
+              <span className="text-white text-lg font-bold tracking-tight">JP</span>
             </div>
-            <span className="text-2xl font-semibold tracking-tight">Community OS</span>
+            <div>
+              <span className="text-3xl font-heading tracking-tight block">J-PDVE</span>
+              <span className="text-sm text-white/60 tracking-wide">CONEXIONES</span>
+            </div>
           </div>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            La plataforma integral para gestionar tu comunidad. Personas, grupos, discipulado y reportes en un solo lugar.
+
+          {/* Tagline */}
+          <p className="text-lg text-white/70 leading-relaxed">
+            La plataforma integral para conectar, crecer y transformar vidas. Gestión ministerial, discipulado y reportes en un ecosistema unificado.
           </p>
-          <div className="flex gap-4 pt-4">
+
+          {/* Stats */}
+          <div className="flex gap-6 pt-4">
             <div className="flex flex-col">
-              <span className="text-2xl font-bold text-foreground">100%</span>
-              <span className="text-xs text-muted-foreground">Visibilidad</span>
+              <span className="text-2xl font-heading text-[#FFB400]">100%</span>
+              <span className="text-xs text-white/50">Visibilidad</span>
             </div>
-            <div className="w-px bg-border" />
+            <div className="w-px bg-white/10" />
             <div className="flex flex-col">
-              <span className="text-2xl font-bold text-foreground">360°</span>
-              <span className="text-xs text-muted-foreground">Seguimiento</span>
+              <span className="text-2xl font-heading text-[#FFB400]">360°</span>
+              <span className="text-xs text-white/50">Seguimiento</span>
             </div>
-            <div className="w-px bg-border" />
+            <div className="w-px bg-white/10" />
             <div className="flex flex-col">
-              <span className="text-2xl font-bold text-foreground">∞</span>
-              <span className="text-xs text-muted-foreground">Escalable</span>
+              <span className="text-2xl font-heading text-[#FFB400]">∞</span>
+              <span className="text-xs text-white/50">Crecimiento</span>
             </div>
+          </div>
+
+          {/* Ministry quote */}
+          <div className="pt-6 border-t border-white/10">
+            <p className="text-sm text-white/40 italic">
+              "Porque donde están dos o tres congregados en mi nombre, allí estoy yo en medio de ellos."
+            </p>
+            <p className="text-xs text-white/30 mt-1">— Mateo 18:20</p>
           </div>
         </div>
       </div>
@@ -39,15 +59,18 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center px-4 bg-background">
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center justify-center gap-2.5 mb-4">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-sm font-bold">C</span>
+          <div className="lg:hidden flex flex-col items-center gap-2 mb-6">
+            <div className="h-12 w-12 rounded-xl bg-[#1565FF] flex items-center justify-center shadow-lg shadow-[#1565FF]/20">
+              <span className="text-white text-lg font-bold">JP</span>
             </div>
-            <span className="text-lg font-semibold tracking-tight">Community OS</span>
+            <div className="text-center">
+              <span className="text-2xl font-heading tracking-tight block">J-PDVE</span>
+              <span className="text-xs text-muted-foreground tracking-widest">CONEXIONES</span>
+            </div>
           </div>
 
           <div className="space-y-1.5 text-center lg:text-left">
-            <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
+            <h1 className="text-2xl font-heading tracking-tight">Iniciar Sesión</h1>
             <p className="text-sm text-muted-foreground">Ingresa tus credenciales para continuar</p>
           </div>
 
@@ -60,7 +83,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-xs text-muted-foreground/60 text-center lg:text-left pt-8">
-            © 2026 Community OS
+            © 2026 J-PDVE Conexiones · Ministerio Palabras de Vida Eterna
           </p>
         </div>
       </div>
