@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && corepack enable && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter @community-os/web build",
+  "outputDirectory": ".next"
+}
