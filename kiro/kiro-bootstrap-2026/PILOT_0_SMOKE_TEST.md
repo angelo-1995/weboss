@@ -44,13 +44,15 @@ El Piloto 0 NO es para evaluar adopción ni satisfacción. Es un **smoke test op
 
 ### Día 2: Test de Flujo Completo
 
-| Hora | Actividad | Quién | Validación |
-|------|-----------|-------|-----------|
-| AM | Líder 1 envía reporte | Líder 1 | ¿Wizard funciona? ¿Autosave? ¿Period status correcto? |
-| AM | Líder 2 envía reporte + registra 2 personas | Líder 2 | ¿Personas se crean? ¿Pipeline stage asignado? |
-| PM | Cobertura revisa dashboard | Cobertura | ¿Ve los 2 reportes? ¿KPIs actualizados? |
-| PM | Pastor revisa dashboard completo | Pastor | ¿Ve todo? ¿Alertas correctas? ¿Organigrama? |
-| PM | Admin verifica audit logs | Admin | ¿Todas las acciones quedaron registradas? |
+| # | Caso | Actor | Validación |
+|---|------|-------|-----------|
+| 1 | Login exitoso | Todos | ¿Cada rol accede a su dashboard correcto? |
+| 2 | Crear reporte (período normal) | Líder 1 | ¿Wizard funciona? ¿Autosave? ¿Period status correcto? |
+| 3 | Crear reporte (período tardío) | Líder 2 | ¿Banner amarillo "Envío Tardío" visible? |
+| 4 | Registrar persona visitante | Líder 2 | ¿Persona aparece en /personas con stage? |
+| 5 | Ver jerarquía | Cobertura | ¿Solo ve sus equipos, no los de otra cobertura? |
+| 6 | **Líder NO reporta** | — (inacción) | **Alerta generada → visible para cobertura y pastor** |
+| 7 | Dashboard actualizado | Pastor | ¿KPIs reflejan los reportes del día 2? |
 
 ### Día 3: Validación + Correcciones
 
@@ -60,6 +62,30 @@ El Piloto 0 NO es para evaluar adopción ni satisfacción. Es un **smoke test op
 | AM | Admin aplica hotfixes si necesario |
 | PM | Re-test de lo que falló |
 | PM | Decisión: ¿Listo para piloto oficial? ¿Qué ajustar? |
+
+---
+
+### Detalle Caso 6: Validación de No-Reporte
+
+**Escenario:** Un líder NO envía su reporte. El sistema debe detectarlo y alertar.
+
+**Precondición:** Al menos 1 líder reporta (Caso 2) y 1 líder NO reporta (inacción deliberada o simulada).
+
+**Pasos para validar:**
+1. Admin ejecuta detección manual: `POST /dashboard/alerts/detect`
+2. Sistema analiza equipos sin reporte en las últimas 2+ semanas
+3. Para el test: si no hay 2 semanas de historia, admin puede crear un dato simulado o verificar que el equipo sin reporte aparece en `GET /reports/cell/pending`
+
+**Validaciones obligatorias:**
+- [ ] Endpoint `GET /reports/cell/pending` muestra el equipo que no reportó
+- [ ] Alerta tipo `MISSING_REPORT` se genera (o se confirma que se generaría con datos acumulados)
+- [ ] Dashboard del pastor muestra KPI "Cumplimiento" < 100%
+- [ ] Dashboard de cobertura muestra indicador del equipo faltante
+- [ ] Si la alerta existe: botón "Atender" la marca como acknowledged
+
+**Nota:** Si el piloto 0 dura solo 3 días, es posible que la detección automática de 2+ semanas no aplique. En ese caso, validar con:
+- El endpoint `GET /reports/cell/pending` (muestra faltantes de la semana actual)
+- Verificar que el KPI de cumplimiento refleja correctamente quién reportó y quién no
 
 ---
 
