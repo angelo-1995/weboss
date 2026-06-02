@@ -17,14 +17,14 @@ COPY apps/web/package.json apps/web/
 # Install ALL dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy only what's needed for API build (not web source)
+# Copy only what's needed for API build
 COPY packages/ packages/
 COPY apps/api/ apps/api/
 
-# Generate Prisma client using pnpm exec
-RUN pnpm exec prisma generate --schema=packages/database/prisma/schema.prisma
+# Generate Prisma client - use node directly to avoid PATH issues
+RUN node node_modules/prisma/build/index.js generate --schema=packages/database/prisma/schema.prisma
 
-# Build ONLY the API (not web)
+# Build ONLY the API
 RUN pnpm --filter @community-os/api build
 
 # Start
