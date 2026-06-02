@@ -291,6 +291,54 @@ Alertas agrupadas por estado (tarjetas o tabs).
 
 ---
 
+## Tema 7 — RF-ORG-014: Nodo Compartido Ministerial (V2)
+
+**Prioridad:** MEDIUM (V2)
+**No implementar ahora.**
+
+**Objetivo:** Representar correctamente líderes que trabajan como una sola unidad ministerial.
+
+**Ejemplo:**
+```
+Cobertura E5.6
+Augusto Monterrey & Angelo Navarro
+  ├── E5.6.1 Jonatan & Cristian
+  ├── E5.6.2 Jordi González
+  └── E5.6.3 Marlone Torres
+```
+
+**Reglas:**
+- Las células hijas cuelgan del nodo compartido
+- NO mostrar Augusto → Angelo ni Angelo → Augusto
+- Detectar co-liderazgo: mismos usuarios con LEADER + CO_LEADER en mismo grupo
+- Renderizar como "Nombre & Nombre" en un solo nodo
+
+---
+
+## Tema 8 — RF-COV-009: Vista de Cobertura Agrupada (V2)
+
+**Prioridad:** MEDIUM (V2)
+**No implementar ahora.**
+
+**Objetivo:** Mostrar coberturas como unidad ministerial con métricas consolidadas.
+
+**Vista esperada:**
+```
+┌─────────────────────────────────────────┐
+│ Cobertura E5.6                          │
+│ Augusto Monterrey & Angelo Navarro      │
+│ ─────────────────────────────────────── │
+│ Células: 3  │ Personas: 23 │ Cumpl: 85%│
+│ Alertas: 1  │ Último reporte: hace 2d  │
+├─────────────────────────────────────────┤
+│  ├── E5.6.1 Jonatan & Cristian         │
+│  ├── E5.6.2 Jordi González             │
+│  └── E5.6.3 Marlone Torres             │
+└─────────────────────────────────────────┘
+```
+
+---
+
 ## Evaluación: ¿Puede iniciarse FASE 3?
 
 ### Respuesta: **SÍ, con condiciones**
