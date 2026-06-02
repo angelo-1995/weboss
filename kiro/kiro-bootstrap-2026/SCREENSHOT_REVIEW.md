@@ -1,0 +1,374 @@
+# SCREENSHOT_REVIEW.md — Revisión Visual Sprint 4B
+
+> **Nota:** Las descripciones visuales están basadas en el código implementado.
+> Para capturas reales, ejecutar `pnpm dev` y navegar a http://localhost:3000.
+
+---
+
+## 1. Login (Desktop — lg+)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│  ┌─────────────────────────┐  ┌──────────────────────────────┐      │
+│  │                         │  │                              │      │
+│  │  PANEL IZQUIERDO        │  │    PANEL DERECHO             │      │
+│  │  (gradient dark)        │  │    (bg-background)           │      │
+│  │                         │  │                              │      │
+│  │  ● Gradiente oscuro     │  │    "Iniciar Sesión"          │      │
+│  │    #050505 → #1565FF/20 │  │    (font-heading Anton)      │      │
+│  │                         │  │                              │      │
+│  │  ● Glow azul blur-3xl   │  │    ┌──────────────────────┐  │      │
+│  │  ● Glow dorado blur-3xl │  │    │ Email               │  │      │
+│  │                         │  │    └──────────────────────┘  │      │
+│  │  [JP] J-PDVE            │  │                              │      │
+│  │       CONEXIONES        │  │    ┌──────────────────────┐  │      │
+│  │                         │  │    │ Contraseña       [👁] │  │      │
+│  │  "La plataforma inte-   │  │    └──────────────────────┘  │      │
+│  │  gral para conectar,    │  │                              │      │
+│  │  crecer y transformar   │  │    [═══ Iniciar Sesión ═══]  │      │
+│  │  vidas."                │  │    (bg-primary #1565FF)      │      │
+│  │                         │  │                              │      │
+│  │  100%   │  360°  │  ∞   │  │    ¿Olvidaste tu contraseña?│      │
+│  │  (dorado #FFB400)       │  │                              │      │
+│  │                         │  │    © 2026 J-PDVE Conexiones  │      │
+│  │  ─────────────────────  │  │    Ministerio PDVE           │      │
+│  │  "Porque donde están    │  │                              │      │
+│  │   dos o tres..."        │  │                              │      │
+│  │  — Mateo 18:20          │  │                              │      │
+│  │                         │  │                              │      │
+│  └─────────────────────────┘  └──────────────────────────────┘      │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Sensación:** Cinematográfico, premium, espiritual. El gradiente oscuro con glows transmite movimiento y tecnología. El dorado en las stats da toque de excelencia. La cita bíblica conecta con la identidad ministerial.
+
+### Login (Mobile — <lg)
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│         [JP]                        │
+│        J-PDVE                       │
+│      CONEXIONES                     │
+│                                     │
+│    "Iniciar Sesión"                 │
+│    (font-heading Anton)             │
+│                                     │
+│  ┌───────────────────────────────┐  │
+│  │ Email                         │  │
+│  └───────────────────────────────┘  │
+│                                     │
+│  ┌───────────────────────────────┐  │
+│  │ Contraseña              [👁]  │  │
+│  └───────────────────────────────┘  │
+│                                     │
+│  [════════ Iniciar Sesión ════════]  │
+│                                     │
+│  ¿Olvidaste tu contraseña?          │
+│                                     │
+│  © 2026 J-PDVE Conexiones           │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+---
+
+## 2. Dashboard (Desktop)
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ [JP]J-PDVE │ Dashboard                          [🔔] [👤 Juan Pérez ▼]│
+│ Conexiones │                                                           │
+├────────────┤                                                           │
+│            │  Dashboard                                                │
+│ PRINCIPAL  │  (font-heading Anton, text-3xl)                           │
+│ ▶Dashboard │  Vista general de la organización                         │
+│  Pipeline  │                                                           │
+│            │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐      │
+│ PERSONAS   │  │📊342│ │👥28 │ │✅15 │ │💰285│ │🏠18 │ │⚠️92%│      │
+│  Usuarios  │  │Asist│ │Visit│ │Cons.│ │Ofren│ │Teams│ │Cumpl│      │
+│  Grupos    │  │↑+12%│ │↑ +3 │ │     │ │↑+5% │ │/20  │ │18/20│      │
+│  Discipul. │  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘      │
+│            │                                                           │
+│ ORGANIZ.   │  ┌─────────────────────────────┐ ┌────────────────────┐  │
+│  Organigr. │  │                             │ │ ALERTAS PASTORALES │  │
+│  Cobertura │  │   GRÁFICA TENDENCIA 12 SEM  │ │                    │  │
+│  Redes     │  │   (Recharts line chart)     │ │ ⚠️ E4.1.2 sin rep │  │
+│  Predicac. │  │                             │ │    2 semanas       │  │
+│  Informes  │  │                             │ │ 📉 E5.3 declive   │  │
+│            │  └─────────────────────────────┘ │    3 semanas       │  │
+│ SISTEMA    │                                   │ ✓ No hay alertas  │  │
+│  Invitac.  │  ─── Pipeline Espiritual ───      │    activas 🎉     │  │
+│  Analytics │  ● Ganados: 45  ● Consolidados: 30│                    │  │
+│  Auditoría │  ● Discipulado: 18  ● Enviados: 8 │    [Atender]      │  │
+│  Config    │                                   └────────────────────┘  │
+│            │                                                           │
+│ [UserMenu] │  ─── Acciones Rápidas ───                                │
+│            │  [Reportes Pend.] [Gestionar Users] [Analíticas]         │
+└────────────┴───────────────────────────────────────────────────────────┘
+```
+
+### Dashboard (Mobile)
+
+```
+┌─────────────────────────────────────┐
+│ [☰] J-PDVE Conex.    [🔔] [👤]    │
+├─────────────────────────────────────┤
+│                                     │
+│  Dashboard                          │
+│  Vista general                      │
+│                                     │
+│  ┌─────────┐  ┌─────────┐         │
+│  │📊 342   │  │👥 28    │         │
+│  │Asistencia│  │Visitantes│         │
+│  │ ↑ +12%  │  │ ↑ +3    │         │
+│  └─────────┘  └─────────┘         │
+│  ┌─────────┐  ┌─────────┐         │
+│  │✅ 15    │  │💰 B/285 │         │
+│  │Consolid. │  │Ofrenda  │         │
+│  └─────────┘  └─────────┘         │
+│  ┌─────────┐  ┌─────────┐         │
+│  │🏠 18    │  │⚠️ 92%   │         │
+│  │Teams    │  │Cumplim.  │         │
+│  └─────────┘  └─────────┘         │
+│                                     │
+│  ─── Alertas ───                   │
+│  ⚠️ E4.1.2 - 2 sem sin rep        │
+│                          [Atender]  │
+│                                     │
+├─────────────────────────────────────┤
+│  🏠     👥      📋     📂     👤  │
+│ Inicio Personas Report Recurs Perfil│
+└─────────────────────────────────────┘
+```
+
+---
+
+## 3. Personas (Desktop)
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ [Sidebar] │                                                            │
+│           │  Personas                        [+ Nueva Persona]         │
+│           │  156 personas registradas                                  │
+│           │                                                            │
+│           │  🔍 [Buscar por nombre, email o teléfono...         ]     │
+│           │                                                            │
+│           │  ┌─────────────────────────────────────────────────────┐  │
+│           │  │ [CG] Carlos Gómez                                   │  │
+│           │  │      📍 E4.1 (Juan & María) · 📱 +507 6XXX-XXXX   │  │
+│           │  │                              [Consolidado] (badge) → │  │
+│           │  ├─────────────────────────────────────────────────────┤  │
+│           │  │ [AR] Ana Rodríguez                                  │  │
+│           │  │      📍 E5.2 (Pedro & Lucía) · 📱 +507 6XXX-XXXX  │  │
+│           │  │                              [Visitante]  (badge)  → │  │
+│           │  ├─────────────────────────────────────────────────────┤  │
+│           │  │ [MT] Miguel Torres                                  │  │
+│           │  │      📍 E4.1.1 (Luis & Oris)                       │  │
+│           │  │                              [Academia N1] (badge) → │  │
+│           │  └─────────────────────────────────────────────────────┘  │
+│           │                                                            │
+│           │            ← Página 1 de 8 →                              │
+└───────────┴────────────────────────────────────────────────────────────┘
+```
+
+**Detalles visuales:**
+- Avatar: círculos con iniciales en bg-primary/10, text-primary
+- Stage badges: color dinámico del pipeline_stage_config.color con fondo transparente
+- Cards: border rounded-xl, hover:bg-muted/50, transition suave
+- ChevronRight aparece en hover (opacity-0 → opacity-100)
+
+---
+
+## 4. Persona Detalle (Desktop)
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ [Sidebar] │                                                            │
+│           │  ← Personas                              [Editar]         │
+│           │                                                            │
+│           │  ┌──────────────────────────────────────────────────────┐ │
+│           │  │ [CG]  Carlos Gómez                                   │ │
+│           │  │ (avatar 80x80)                                       │ │
+│           │  │       [✦ Consolidado] (badge con color)              │ │
+│           │  │                                                       │ │
+│           │  │  👥 E4.1 · Juan & María  📱 +507 6XXX   📅 Desde Ene│ │
+│           │  └──────────────────────────────────────────────────────┘ │
+│           │                                                            │
+│           │  [Información]  [Timeline Espiritual]  [Historial]        │
+│           │  ─────────────  ~~~~~~~~~~~~~~~~~~~~                      │
+│           │                                                            │
+│           │  (contenido del tab activo)                                │
+└───────────┴────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5. Timeline Espiritual
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                                                                   │
+│  ┌──────────────────────────────────────────────────────────────┐│
+│  │  5 Avances  │  420 Días en camino  │  Stage: Servidor        ││
+│  └──────────────────────────────────────────────────────────────┘│
+│                                                                   │
+│  │                                                               │
+│  ●──┌───────────────────────────────────────────────────────┐   │
+│  │  │ [Servidor] → [Líder]         12 Ago 2026 · Actual    │   │
+│  │  │ "Avanzó a Líder"                                      │   │
+│  │  │ "Completó todos los requisitos"                        │   │
+│  │  └───────────────────────────────────────────────────────┘   │
+│  │                                                               │
+│  ●──┌───────────────────────────────────────────────────────┐   │
+│  │  │ [Academia N1] → [Servidor]   03 May 2026 · Hace 97d  │   │
+│  │  │ "Avanzó a Servidor"                                    │   │
+│  │  │ ⏱ 77 días en esta etapa                               │   │
+│  │  └───────────────────────────────────────────────────────┘   │
+│  │                                                               │
+│  ●──┌───────────────────────────────────────────────────────┐   │
+│  │  │ [Consolidado] → [Academia N1] 15 Feb 2026 · Hace 167d│   │
+│  │  │ "Graduado de Academia N1"                              │   │
+│  │  │ ⏱ 24 días en esta etapa                               │   │
+│  │  └───────────────────────────────────────────────────────┘   │
+│  │                                                               │
+│  ●──┌───────────────────────────────────────────────────────┐   │
+│  │  │ [Visitante] → [Consolidado]  22 Ene 2026 · Hace 191d │   │
+│  │  │ "Avanzó a Consolidado"                                 │   │
+│  │  │ ⏱ 7 días en esta etapa                                │   │
+│  │  └───────────────────────────────────────────────────────┘   │
+│  │                                                               │
+│  ○──┌───────────────────────────────────────────────────────┐   │
+│     │ ✨ → [Visitante]             15 Ene 2026              │   │
+│     │ "Ingresó como Visitante"                               │   │
+│     └───────────────────────────────────────────────────────┘   │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**Sensación:** Tipo LinkedIn activity feed o CRM premium. Vertical con línea conectora, dots con color del stage, badges de transición (from → to), time-in-stage indicator. Summary stats arriba. Empty state con ✨ dorado.
+
+---
+
+## 6. Bottom Navigation (Mobile)
+
+```
+┌─────────────────────────────────────┐
+│ (contenido de la página)            │
+│                                     │
+│                                     │
+├─────────────────────────────────────┤
+│  ___                                │
+│  🏠      👥      📋     📂    👤  │
+│ Inicio  Personas Report Recurs Perfil│
+│                                     │
+│ (active: text-primary + bar top)    │
+│ (inactive: text-muted-foreground)   │
+└─────────────────────────────────────┘
+```
+
+- Fondo: bg-card/95 con backdrop-blur
+- Height: 64px (h-16)
+- Active indicator: barra azul de 2px arriba del icon
+- Safe area padding para iOS
+
+---
+
+## 7. Sidebar (Desktop)
+
+```
+┌──────────────────┐
+│ [JP] J-PDVE      │
+│      Conexiones  │
+├──────────────────┤
+│ PRINCIPAL        │
+│ ▶ Dashboard      │  ← active: border-l-2 primary
+│   Pipeline       │
+│                  │
+│ PERSONAS         │
+│   Usuarios       │
+│   Grupos         │
+│   Discipulado    │
+│                  │
+│ ORGANIZACIÓN     │
+│   Organigrama    │
+│   Cobertura      │
+│   Redes          │
+│   Predicaciones  │
+│   Informes       │
+│                  │
+│ SISTEMA          │
+│   Invitaciones   │
+│   Analytics      │
+│   Auditoría      │
+│   Configuración  │
+│                  │
+├──────────────────┤
+│ [👤 UserMenu]    │
+└──────────────────┘
+```
+
+---
+
+## 8. Evaluación Visual de Branding
+
+| Elemento | ¿Dice "J-PDVE Conexiones"? | Notas |
+|----------|:--------------------------:|-------|
+| Login (desktop) | ✅ SÍ | Logo JP + nombre + gradient + cita bíblica + dorado |
+| Login (mobile) | ✅ SÍ | Logo JP + nombre centrado |
+| Sidebar logo | ✅ SÍ | "JP" + "J-PDVE / Conexiones" en 2 líneas |
+| Footer copyright | ✅ SÍ | "© 2026 J-PDVE Conexiones · Ministerio PDVE" |
+| Page titles | ✅ SÍ | Font Anton en todos los h1 |
+| Body text | ✅ SÍ | Montserrat en todo el body |
+| Primary color | ✅ SÍ | #1565FF consistente |
+| Accent gold | ⚠️ PARCIAL | Definido pero usado solo en login stats y timeline empty |
+| Dark theme | ✅ SÍ | Cinematográfico (#0d1117 base), no pure black |
+| Bottom nav | ✅ SÍ | Backdrop blur + primary indicators |
+
+### ¿Se siente como J-PDVE o como Community OS?
+
+**Veredicto: 85% J-PDVE.** Los últimos 15% requieren:
+- Más uso del dorado como accent (achievements, highlights, premium badges)
+- Micro-animaciones Framer Motion en page transitions
+- Ilustraciones/icons propios de la marca en empty states
+
+---
+
+## 9. Pendientes para Considerar Revisión Completa
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Report Wizard con period locking UI | ❌ Pendiente (Prioridad 2 del Sprint 4B) |
+| 2 | Más uso de dorado como accent | ⚠️ Quick fix |
+| 3 | Framer Motion page transitions | ⚠️ Exists but could enhance |
+
+---
+
+## Cómo Verificar Visualmente
+
+Para ver el producto corriendo:
+
+```bash
+# Terminal 1: Infrastructure
+cd kiro/kiro-bootstrap-2026
+pnpm docker:up
+
+# Terminal 2: Backend
+pnpm --filter @community-os/api dev
+
+# Terminal 3: Frontend
+pnpm --filter @community-os/web dev
+
+# Navegar a:
+# http://localhost:3000/login
+# Credenciales: admin@community-os.local / Admin1234!
+```
+
+**Screens para validar:**
+1. `/login` — Branding J-PDVE completo
+2. `/dashboard` — KPIs + Alertas + Pipeline
+3. `/personas` — Lista con badges de pipeline
+4. `/personas/:id` — Detalle + Tab Timeline Espiritual
+5. Resize a mobile (< 768px) — Bottom nav + grid responsive
