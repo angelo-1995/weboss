@@ -1,0 +1,208 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Ministerial Scope Not Enforced on Scoped Endpoints
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate hierarchical scope is not enforced
+  - **Scoped PBT Approach**: Scope the property to concrete failing cases using known test users (Líder E5.8, Cobertura E5.6, Pastor de Red E5)
+  - Test file: `apps/api/src/domains/groups/tests/ministerial-scope-bug-condition.spec.ts`
+  - Test setup: Seed database with hierarchy (E5 → E5.6 → E5.6.1, E5.6.2, E5.6.3, E5.8) and groups/persons across multiple networks
+  - Test case 1: Authenticate as Líder E5.8, request `GET /groups` → assert returns ONLY groups where leaderCode starts with "E5.8" (expect FAILURE: returns all groups)
+  - Test case 2: Authenticate as Líder E5.8, request `GET /persons` → assert all returned persons have `currentGroupId` in E5.8's visible groups (expect FAILURE: returns all persons)
+  - Test case 3: Authenticate as Cobertura E5.6, request `GET /dashboard/kpis` → assert attendance equals SUM only from E5.6.* reports (expect FAILURE: returns global KPIs)
+  - Test case 4: Authenticate as Líder E5.8, request `GET /dashboard/alerts` → assert all alerts have `targetGroupId` matching E5.8 groups only (expect FAILURE: returns all alerts)
+  - Test case 5: Authenticate as Líder, verify sidebar does NOT show "Acceso al Sistema" or "Gestión Predicaciones" (expect FAILURE: shows admin items)
+  - Test case 6: Request `GET /users/:id` for user with null Person relation → assert HTTP 200 (expect FAILURE: returns 500)
+  - Property assertion: `FOR ALL input WHERE NOT isFullAccess(input.roles) AND input.endpoint IN scopedEndpoints: ALL items in response MUST have groupId IN HierarchyVisibilityService.getVisibleGroupIds(userId, roles)`
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found (e.g., "Líder E5.8 gets 30+ groups instead of 1", "KPIs show global attendance 200+ instead of scoped 12")
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 1.9, 1.10_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Admin Full Access and Unscoped Endpoints Unchanged
+  - **IMPORTANT**: Follow observation-first methodology
+  - Test file: `apps/api/src/domains/groups/tests/ministerial-scope-preservation.spec.ts`
+  - Observe: Authenticate as ADMIN/SUPER_ADMIN, request `GET /groups` → observe returns ALL groups on unfixed code
+  - Observe: Authenticate as ADMIN, request `GET /dashboard/kpis` → observe returns global KPIs on unfixed code
+  - Observe: Authenticate as LEADER, request `GET /users/organigrama` → observe returns full org chart on unfixed code
+  - Observe: Authenticate as LEADER, request `GET /users/cobertura` → observe returns full coverage tree on unfixed code
+  - Observe: Authenticate as LEADER, request `GET /sermons` → observe returns all sermons on unfixed code
+  - Observe: Authenticate as any role, `PATCH /users/me/profile` → observe succeeds regardless of scope
+  - Observe: Render Pipeline at viewport > 768px → observe Kanban column layout
+  - Write property-based test: `FOR ALL input WHERE isFullAccess(input.roles): F(input).data = F'(input).data` (admin results unchanged)
+  - Write property-based test: `FOR ALL input WHERE endpoint IN [organigrama, cobertura, sermons]: F(input) = F'(input)` (unscoped endpoints unchanged)
+  - Write property-based test: `FOR ALL input WHERE viewport > 768px AND endpoint = pipeline: layout = "kanban"` (desktop Pipeline preserved)
+  - Write property-based test: Generate random ADMIN user combinations and verify all endpoints return unfiltered results
+  - Verify all preservation tests PASS on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9_
+
+- [ ] 3. Fix for Ministerial Scope — Hierarchical Filtering Not Enforced
+
+  - [ ] 3.1 H-014: Inject scope into DashboardKpisService (KPI Recalculation)
+    - File: `apps/api/src/domains/reporting/dashboard-kpis.service.ts`
+    - Accept `visibleGroupIds: string[] | null` parameter in `getKPIs` and `getAttendanceTrend`
+    - When non-null, use `visibleGroupIds` directly instead of querying all groups by campusId
+    - When null (admin), query all groups as before (unchanged behavior)
+    - Recalculate attendance, visitors, offerings, teams, compliance using ONLY scoped group data
+    - Include userId in cache key to prevent cross-user cache leaks
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint = "GET /dashboard/kpis"_
+    - _Expected_Behavior: KPIs recalculated from ONLY visibleGroupIds data_
+    - _Preservation: Admin/SUPER_ADMIN gets all groups (null filter = no restriction)_
+    - _Requirements: 2.2, 2.8, 3.1_
+
+  - [ ] 3.2 H-008: Inject scope into DashboardController (alerts + KPIs + trend)
+    - File: `apps/api/src/domains/reporting/dashboard.controller.ts`
+    - Inject `HierarchyVisibilityService` into DashboardController
+    - Add `@CurrentUser()` parameter to `getKPIs`, `getAlerts`, `getAttendanceTrend`
+    - Call `getVisibleGroupIds(user.id, user.roles)` and pass result to DashboardKpisService
+    - For alerts: add `targetGroupId: { in: visibleGroupIds }` to WHERE clause when non-null
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint IN [dashboard/kpis, dashboard/alerts, dashboard/attendance-trend]_
+    - _Expected_Behavior: All dashboard data filtered by user's visible scope_
+    - _Preservation: Admin gets null visibleGroupIds = no filter applied_
+    - _Requirements: 2.2, 2.9, 2.10, 3.1_
+
+  - [ ] 3.3 H-003: Inject scope into GroupsController + GroupsRepository
+    - File: `apps/api/src/domains/groups/groups.controller.ts`
+    - File: `apps/api/src/domains/groups/groups.repository.ts`
+    - Add `@CurrentUser()` parameter to `findMany` in controller
+    - Inject `HierarchyVisibilityService`, call `getVisibleGroupIds(user.id, user.roles)`
+    - Pass `visibleGroupIds` to service/repository
+    - In repository: accept optional `visibleGroupIds: string[] | null`, add `id: { in: visibleGroupIds }` to WHERE when non-null
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint = "GET /groups"_
+    - _Expected_Behavior: Returns ONLY groups with id IN visibleGroupIds_
+    - _Preservation: Admin gets null = all groups returned as before_
+    - _Requirements: 2.1, 2.8, 3.1_
+
+  - [ ] 3.4 H-004: Inject scope into PersonsController + PersonsRepository
+    - File: `apps/api/src/domains/persons/persons.controller.ts`
+    - File: `apps/api/src/domains/persons/persons.repository.ts`
+    - Add `@CurrentUser()` parameter to `findAll` in controller
+    - Inject `HierarchyVisibilityService`, call `getVisibleGroupIds(user.id, user.roles)`
+    - Pass `visibleGroupIds` to service/repository
+    - In repository: accept optional `visibleGroupIds: string[] | null`, add `currentGroupId: { in: visibleGroupIds }` to WHERE when non-null
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint = "GET /persons"_
+    - _Expected_Behavior: Returns ONLY persons with currentGroupId IN visibleGroupIds_
+    - _Preservation: Admin gets null = all persons returned as before_
+    - _Requirements: 2.3, 2.4, 2.8, 3.1_
+
+  - [ ] 3.5 H-005: Scope Pipeline endpoint by visible groups
+    - File: `apps/api/src/domains/persons/persons.controller.ts` (or pipeline-specific controller)
+    - Ensure Pipeline data endpoint uses same `visibleGroupIds` filter from H-004
+    - Pipeline persons are filtered at query level by `currentGroupId IN visibleGroupIds`
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint = "GET /pipeline"_
+    - _Expected_Behavior: Pipeline shows ONLY persons from user's visible groups_
+    - _Preservation: Admin sees all persons in pipeline_
+    - _Requirements: 2.4, 2.8, 3.1_
+
+  - [ ] 3.6 H-006: Scope Reporting/CellReports by visible groups
+    - File: `apps/api/src/domains/reporting/` (reporting controller/repository)
+    - Inject `HierarchyVisibilityService` into reporting endpoints
+    - Add `groupId: { in: visibleGroupIds }` to WHERE clause on cell report queries when non-null
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint IN [reporting, cell-reports]_
+    - _Expected_Behavior: Returns ONLY reports from groups within user's scope_
+    - _Preservation: Admin gets all reports_
+    - _Requirements: 2.9, 2.8, 3.1_
+
+  - [ ] 3.7 H-007: Scope Alertas Pastorales by visible groups
+    - File: `apps/api/src/domains/reporting/dashboard.controller.ts` (alerts section)
+    - Ensure `getAlerts` filters `operationalAlert.findMany` with `targetGroupId: { in: visibleGroupIds }` when non-null
+    - Líder E5.8 MUST see ONLY alerts for their own cell, never other leaders' cells
+    - _Bug_Condition: isBugCondition(input) where NOT isFullAccess(roles) AND endpoint = "GET /dashboard/alerts"_
+    - _Expected_Behavior: ALL alerts in response have targetGroupId IN visibleGroupIds_
+    - _Preservation: Admin/Pastor General sees all alerts_
+    - _Requirements: 2.9, 2.10, 3.1_
+
+  - [ ] 3.8 H-001: Restrict sidebar menu items by role (Frontend)
+    - File: `apps/web/src/components/layout/side-nav.tsx`
+    - Change `/users` ("Acceso al Sistema") roles to `['ADMIN', 'SUPER_ADMIN']`
+    - Change `/sermons/admin` ("Gestión Predicaciones") roles from `['LEADER', 'ADMIN', 'SUPER_ADMIN']` to `['ADMIN', 'SUPER_ADMIN']`
+    - Remove `LEADER` role from all management menu items per ADR-010 VIEW_PERMISSION vs MANAGE_PERMISSION matrix
+    - Only ADMIN/SUPER_ADMIN (and Pastor de Red who has ADMIN role) can see management items
+    - _Bug_Condition: isBugCondition(input) where roles NOT IN [ADMIN, SUPER_ADMIN, PASTOR_RED] AND sidebar shows admin items_
+    - _Expected_Behavior: Líder/Cobertura do NOT see "Acceso al Sistema" or "Gestión Predicaciones"_
+    - _Preservation: ADMIN/SUPER_ADMIN sidebar remains unchanged (all items visible)_
+    - _Requirements: 2.5, 3.4_
+
+  - [ ] 3.9 H-002: Fix GET /users/:id null Person handling
+    - File: `apps/api/src/domains/users/users.service.ts` (or `users.repository.ts`)
+    - Ensure `findById` handles null `person` relation gracefully
+    - Add null checks for optional Person relationship in SELECT/include
+    - Return user detail with null/empty person fields instead of throwing
+    - _Bug_Condition: isBugCondition(input) where endpoint = "GET /users/:id" AND targetUser.person = null_
+    - _Expected_Behavior: Returns HTTP 200 with user data and person: null_
+    - _Preservation: Users WITH person records continue to return full detail unchanged_
+    - _Requirements: 2.6_
+
+  - [ ] 3.10 H-010: Configure SMTP App Password for invitations
+    - File: Production environment configuration (`.env.production` or deployment secrets)
+    - Configure `SMTP_PASSWORD` with Gmail App Password instead of regular account password
+    - Document the App Password requirement in deployment docs
+    - Verify `POST /invitations` sends email successfully with Maildev in test environment
+    - _Bug_Condition: isBugCondition(input) where endpoint = "POST /invitations" AND smtp.appPassword NOT configured_
+    - _Expected_Behavior: Invitation email sent successfully via configured SMTP_
+    - _Preservation: Invitation activation (POST /invitations/activate) remains unchanged_
+    - _Requirements: 2.7, 3.6_
+
+  - [ ] 3.11 H-015: Mobile Pipeline tabs-by-stage UX
+    - File: `apps/web/src/features/users/components/pipeline-view.tsx`
+    - Add responsive breakpoint detection (≤ 768px via Tailwind `md:` or `useMediaQuery`)
+    - On mobile (≤ 768px): render Pipeline as tabs interface with stages: `[Ganados | Consolidados | Discipulado | Enviados]`
+    - Each tab shows vertical list of persons in that stage
+    - Active tab visually highlighted (Tailwind active state)
+    - Person count badge on each tab
+    - Support swipe gesture between tabs (optional enhancement)
+    - On desktop (> 768px): preserve existing Kanban column layout unchanged
+    - _Bug_Condition: isBugCondition(input) where endpoint = pipeline AND viewport <= 768_
+    - _Expected_Behavior: Tabs layout with no horizontal scroll, stage context preserved_
+    - _Preservation: Desktop (> 768px) Kanban columns remain unchanged_
+    - _Requirements: 2.11, 3.9_
+
+  - [ ] 3.12 H-012: Cache key isolation for scoped KPIs
+    - File: `apps/api/src/common/services/hierarchy-visibility.service.ts`
+    - File: `apps/api/src/domains/reporting/dashboard-kpis.service.ts`
+    - Include userId in DashboardKpisService cache keys to prevent cross-user cache leaks
+    - Ensure `getVisibleGroupIds` cache keys include userId scope
+    - Two users with different scopes requesting KPIs must NOT get each other's cached results
+    - _Bug_Condition: Two different-scope users hit same cache key_
+    - _Expected_Behavior: Cache keys include userId, results are isolated per user_
+    - _Preservation: Cache performance characteristics unchanged for single-user scenarios_
+    - _Requirements: 2.2, 2.8_
+
+  - [ ] 3.13 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Ministerial Scope Correctly Enforced
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior for all scoped endpoints
+    - When this test passes, it confirms hierarchical filtering is correctly applied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Líder E5.8 now gets only 1 group, scoped persons, scoped KPIs, scoped alerts
+    - Cobertura E5.6 now gets only E5.6.* groups and data
+    - Sidebar no longer shows admin items to non-admin users
+    - `GET /users/:id` returns 200 for null-Person users
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.8, 2.9, 2.10_
+
+  - [ ] 3.14 Verify preservation tests still pass
+    - **Property 2: Preservation** - Admin Full Access and Unscoped Endpoints Unchanged
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm ADMIN/SUPER_ADMIN still gets all data without filtering
+    - Confirm organigrama, cobertura, sermons list remain unscoped
+    - Confirm desktop Pipeline Kanban layout unchanged
+    - Confirm self-profile update still works regardless of scope
+    - Confirm existing RBAC guards still enforce role-based access
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run full test suite: `pnpm test`
+  - Run type checking: `pnpm type-check`
+  - Run linting: `pnpm lint`
+  - Verify all bug condition tests pass (hierarchical scope enforced)
+  - Verify all preservation tests pass (no regressions)
+  - Verify E2E scenarios pass for all 4 test users (Líder E5.8, Cobertura E5.6, Pastor de Red E5, Pastor General admin)
+  - Ensure all tests pass, ask the user if questions arise
