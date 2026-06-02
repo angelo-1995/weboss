@@ -2,29 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ════════════════════════════════════════════════════════════
+   J-PDVE CONEXIONES — Brand Design System
+   Colors: #1565FF (Blue), #FFB400 (Gold), #050505 (Black), #F5F7FA (White)
+   Typography: Anton (headings), Montserrat (body)
+   Style: Modern, Cinematic, Premium, Youth-Oriented, Dark Theme
+   ════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 224 71% 4%;
+    --background: 210 17% 98%;
+    --foreground: 0 0% 2%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 0 0% 2%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 220 91% 54%;
-    --primary-foreground: 210 20% 98%;
+    --popover-foreground: 0 0% 2%;
+    --primary: 217 100% 54%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 9% 46%;
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 96%;
-    --accent-foreground: 224 71% 4%;
+    --accent: 43 100% 50%;
+    --accent-foreground: 0 0% 2%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 20% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 220 91% 54%;
+    --ring: 217 100% 54%;
     --radius: 0.625rem;
     --sidebar-width: 240px;
+
+    /* J-PDVE Brand Colors */
+    --brand-blue: 217 100% 54%;
+    --brand-gold: 43 100% 50%;
+    --brand-black: 0 0% 2%;
+    --brand-white: 210 17% 98%;
 
     /* Motion tokens */
     --transition-fast: 150ms;
@@ -47,26 +62,26 @@
   }
 
   .dark {
-    /* Warm dark mode — NOT pure black */
-    --background: 222 14% 8%;
-    --foreground: 210 20% 98%;
-    --card: 222 14% 10%;
-    --card-foreground: 210 20% 98%;
-    --popover: 222 14% 10%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 222 47% 11%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 222 14% 14%;
+    /* J-PDVE Dark Theme — Cinematic, Premium, NOT pure black */
+    --background: 220 15% 5%;
+    --foreground: 210 17% 98%;
+    --card: 220 15% 8%;
+    --card-foreground: 210 17% 98%;
+    --popover: 220 15% 8%;
+    --popover-foreground: 210 17% 98%;
+    --primary: 217 100% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 12%;
+    --secondary-foreground: 210 17% 90%;
+    --muted: 220 15% 12%;
     --muted-foreground: 218 11% 65%;
-    --accent: 222 14% 14%;
-    --accent-foreground: 210 20% 98%;
+    --accent: 43 100% 50%;
+    --accent-foreground: 0 0% 2%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 20% 98%;
-    --border: 222 14% 16%;
-    --input: 222 14% 16%;
-    --ring: 224 76% 48%;
+    --border: 220 15% 14%;
+    --input: 220 15% 14%;
+    --ring: 217 100% 54%;
   }
 }
 
@@ -81,7 +96,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* J-PDVE Typography */
+  h1, h2, h3, .font-heading {
+    font-family: 'Anton', system-ui, sans-serif;
+    letter-spacing: 0.02em;
   }
 
   /* Better focus states */
