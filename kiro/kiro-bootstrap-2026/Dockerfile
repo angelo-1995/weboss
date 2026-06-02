@@ -11,13 +11,13 @@ COPY . .
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Generate Prisma - run from database package directory where prisma is installed
+# Generate Prisma client
 RUN cd packages/database && npx prisma generate
 
-# Build API only
+# Build API
 RUN pnpm --filter @community-os/api build
 
-# Start
+# Start with tsconfig-paths to resolve @community-os/* workspace imports
 ENV PORT=4000
 EXPOSE 4000
-CMD ["node", "apps/api/dist/apps/api/src/main.js"]
+CMD ["node", "-r", "tsconfig-paths/register", "apps/api/dist/apps/api/src/main.js"]
