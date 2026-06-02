@@ -45,7 +45,7 @@ export function CommandSearch() {
 
   const handleSelect = (result: SearchResult) => {
     const href = TYPE_HREF[result.type]?.(result.id);
-    if (href) router.push(href);
+    if (href) router.push(href as any);
     setOpen(false);
   };
 

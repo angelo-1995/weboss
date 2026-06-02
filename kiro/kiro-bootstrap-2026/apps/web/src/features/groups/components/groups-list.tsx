@@ -40,8 +40,8 @@ function GroupCard({ group }: { group: Group & { _count?: { members: number } } 
         <span>
           {(group as Group & { _count?: { members: number } })._count?.members ?? 0} miembros
         </span>
-        <span className={group.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
-          {group.isActive ? 'Activo' : 'Inactivo'}
+        <span className={(group as any).isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>
+          {(group as any).isActive ? 'Activo' : 'Inactivo'}
         </span>
       </div>
     </div>
