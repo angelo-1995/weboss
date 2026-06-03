@@ -32,13 +32,21 @@ export class EmailService {
 
       this.logger.log(`Email transport configured: ${host}:${port} (secure: ${secure}, auth: ${!!user})`);
 
-      // Verify connection at startup
+      // Verify connection at startup — use console.log for guaranteed visibility in Railway
       if (user && pass) {
-        this.transporter.verify().then(() => {
-          this.logger.log('✓ SMTP connection verified successfully');
-        }).catch((err) => {
-          this.logger.error(`✗ SMTP verification FAILED: ${err.message}`);
-        });
+        console.log('[SMTP] Starting verification...');
+        console.log(`[SMTP] Config: host=${host}, port=${port}, secure=${secure}, user=${user}, passLength=${pass.length}`);
+        this.transporter.verify()
+          .then(() => {
+            console.log('[SMTP] ✓ Verification successful — ready to send emails');
+            this.logger.log('[SMTP] ✓ Verification successful');
+          })
+          .catch((err: Error) => {
+            console.error(`[SMTP] ✗ Verification FAILED: ${err.message}`);
+            this.logger.error(`[SMTP] ✗ Verification FAILED: ${err.message}`);
+          });
+      } else {
+        console.log(`[SMTP] No auth configured (user=${!!user}, pass=${!!pass}) — skipping verify`);
       }
     } catch (error) {
       this.logger.warn('Email transport not configured — emails will be logged only');
