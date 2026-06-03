@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -44,6 +45,7 @@ const NEXT_STAGE: Record<string, string> = {
 };
 
 export function PromoteUserModal({ open, onOpenChange, user, onSuccess }: PromoteUserModalProps) {
+  const router = useRouter();
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [milestones, setMilestones] = useState<Milestones | null>(null);
@@ -70,6 +72,8 @@ export function PromoteUserModal({ open, onOpenChange, user, onSuccess }: Promot
       toast.success(`${user.firstName} promovido a ${STAGE_LABELS[nextStage]}`);
       onSuccess();
       onOpenChange(false);
+      // Refresh server-side data for any page showing pipeline info
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message || 'Error al promover usuario');
     } finally {

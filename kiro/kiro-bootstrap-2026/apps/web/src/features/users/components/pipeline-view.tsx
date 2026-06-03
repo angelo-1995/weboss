@@ -78,6 +78,8 @@ export function PipelineView() {
 
   const handlePromoteSuccess = () => {
     setPromoteTarget(null);
+    // Re-fetch pipeline data immediately to reflect the promotion
+    setLoading(true);
     fetchPipeline();
   };
 

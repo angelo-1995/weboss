@@ -3,16 +3,21 @@ import {
   BadRequestException,
   ForbiddenException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import { HierarchyVisibilityService } from '../../common/services/hierarchy-visibility.service';
+import { CacheService } from '../../infrastructure/cache/cache.service';
 import { CreateCellReportDto, CellReportQueryDto } from './dto/cell-report.dto';
 
 @Injectable()
 export class CellReportService {
+  private readonly logger = new Logger(CellReportService.name);
+
   constructor(
     private readonly db: DatabaseService,
     private readonly visibility: HierarchyVisibilityService,
+    private readonly cache: CacheService,
   ) {}
 
   /**
@@ -93,7 +98,7 @@ export class CellReportService {
       dto.childrenCount;
 
     // 5. Create
-    return this.db.cellReport.create({
+    const report = await this.db.cellReport.create({
       data: {
         groupId: dto.groupId,
         reporterId,
@@ -129,6 +134,15 @@ export class CellReportService {
         reporter: { select: { id: true, firstName: true, lastName: true } },
       },
     });
+
+    // Invalidate dashboard cache so KPIs reflect the new report immediately
+    try {
+      await this.cache.delPattern('dashboard:*');
+    } catch (err) {
+      this.logger.warn(`Cache invalidation failed after report creation: ${err}`);
+    }
+
+    return report;
   }
 
   async findAll(query: CellReportQueryDto, userId: string, roles: string[]): Promise<any> {
